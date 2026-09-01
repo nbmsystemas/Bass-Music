@@ -29,7 +29,7 @@ cd "$INSTALL_DIR"
 echo "🐍 Configurando entorno virtual y librerías..."
 python3 -m venv venv
 source venv/bin/activate
-pip install --upgrade pip quiet
+pip install --upgrade pip --quiet
 pip install -r requirements.txt --quiet
 pip install yt-dlp --quiet
 
