@@ -100,7 +100,9 @@ class Player:
             input_default_bindings=False,
             input_vo_keyboard=False,
         )
-        self.mpv.volume = 70
+        state = load_state()
+        self.mpv.volume = state.get("volume", 70)
+        self.mpv.mute = state.get("is_muted", False)
 
         self.playlist: list[Track] = []
         self.index: int = -1
@@ -109,8 +111,8 @@ class Player:
         self._lock = threading.Lock()
         self._pending_eof = False
 
-        # 10 bandas del ecualizador, todas en 0 dB al arrancar
-        self.eq_gains = [0] * len(EQ_BANDS_HZ)
+        # Cargar bandas del ecualizador desde el estado guardado
+        self.eq_gains = state.get("eq_gains", [0] * len(EQ_BANDS_HZ))
 
         # Cuando mpv termina una pista sólo, avanzamos nosotros.
         self.mpv.observe_property("eof-reached", self._on_eof)
