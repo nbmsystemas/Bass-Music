@@ -70,7 +70,7 @@ EQ_PRESETS = {
 # ---------------------------------------------------------------------------
 # Espectro / visualizador
 # ---------------------------------------------------------------------------
-SPECTRUM_BARS = 28          # cantidad de barras a dibujar
+SPECTRUM_BARS = 120          # cantidad de barras a dibujar
 SPECTRUM_FPS = 20           # actualizaciones por segundo objetivo
 SAMPLE_RATE = 44100
 FFT_CHUNK = 1024            # muestras que leemos por bloque de audio

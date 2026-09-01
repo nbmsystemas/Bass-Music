@@ -439,11 +439,11 @@ class BassUI:
             pass
 
     def _draw_library(self, h, w, lib_w):
-        top, bottom = 2, h - 9
+        top, bottom = 1, h - 7
         visible_h = max(1, bottom - top)
         
         # separator
-        for y in range(top, h - 3):
+        for y in range(top, h - 6):
             try:
                 self.scr.addstr(y, lib_w, "│", curses.color_pair(config.COLOR_DIM))
             except curses.error:
@@ -481,7 +481,7 @@ class BassUI:
                 pass
 
     def _draw_playlist(self, h, w, lib_w):
-        top, bottom = 2, h - 9  # fixed: was h-8, now h-9 to avoid spectrum label collision (M-5)
+        top, bottom = 1, h - 7  # fixed: was h-8, now h-9 to avoid spectrum label collision (M-5)
         eq_width = 34 if self.show_eq else 0
         list_w = max(10, w - lib_w - eq_width - 2)
         visible_h = max(1, bottom - top)
@@ -523,37 +523,39 @@ class BassUI:
                 pass
 
     def _draw_spectrum(self, h, w, lib_w):
-        row = h - 7
         levels = self.spectrum.update()
-        eq_width = 34 if self.show_eq else 0
-        avail_w = max(10, w - eq_width)
+        spec_h = 4
+        start_y = h - 6
+        avail_w = w - 2
         n = min(len(levels), avail_w)
-        bar_chars = " ▁▂▃▄▅▆▇█"
-        line_chars = []
+        offset_x = max(0, (w - n) // 2)
+        chars = "  ▂▃▄▅▆▇█"
+        
+        # Dibuja título centrado
+        title = " E S P E C T R O   E N   V I V O " if self.spectrum.live else " ( S I M U L A D O ) "
+        try:
+            self.scr.addstr(start_y - 1, max(0, (w - len(title)) // 2), title, curses.color_pair(config.COLOR_DIM))
+        except:
+            pass
+
         for i in range(n):
             v = levels[i]
-            idx = min(len(bar_chars) - 1, int(v * (len(bar_chars) - 1)))
-            line_chars.append(bar_chars[idx])
-        line = "".join(line_chars)
-
-        for i, c in enumerate(line):
-            v = levels[i] if i < len(levels) else 0
-            if v < 0.33:
-                color = config.COLOR_BAR_LOW
-            elif v < 0.66:
-                color = config.COLOR_BAR_MID
-            else:
-                color = config.COLOR_BAR_HIGH
-            try:
-                self.scr.addstr(row, i, c, curses.color_pair(color))
-            except curses.error:
-                pass
-
-        label = "espectro en vivo" if self.spectrum.live else "espectro simulado (sin monitor de audio)"
-        try:
-            self.scr.addstr(row - 1, 0, label[: avail_w - 1], curses.color_pair(config.COLOR_DIM))
-        except curses.error:
-            pass
+            val = v * spec_h
+            if v < 0.4: color = config.COLOR_BAR_LOW
+            elif v < 0.7: color = config.COLOR_BAR_MID
+            else: color = config.COLOR_BAR_HIGH
+            
+            for row in range(spec_h):
+                y = start_y + (spec_h - 1 - row)
+                cell_v = val - row
+                if cell_v >= 1.0: c = chars[-1]
+                elif cell_v > 0.0: c = chars[int(cell_v * (len(chars) - 1))]
+                else: c = " "
+                
+                try:
+                    self.scr.addstr(y, offset_x + i, c, curses.color_pair(color))
+                except curses.error:
+                    pass
 
     def _draw_progress(self, h, w, lib_w):
         row = h - 4
