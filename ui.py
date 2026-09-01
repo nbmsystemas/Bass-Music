@@ -207,11 +207,11 @@ class BassUI:
             self.status_msg = f"Shuffle: {'ON' if self.player.shuffle_on else 'OFF'}"
         elif ch in K["repeat"]:
             self.player.cycle_repeat()
-            names = ["OFF", "UNA", "TODAS"]
-            self.status_msg = f"Repetir: {names[self.player.repeat_mode]}"
+            names = ["OFF", "ONE", "ALL"]
+            self.status_msg = f"Repeat: {names[self.player.repeat_mode]}"
         elif ch == ord('v'):
             self.spec_style = (getattr(self, 'spec_style', 0) + 1) % 4
-            self.status_msg = f"Visualizador: Estilo {self.spec_style + 1}"
+            self.status_msg = f"Visualizer: Style {self.spec_style + 1}"
         elif ch in K["toggle_eq"]:
             self.show_eq = not self.show_eq
         elif ch in K["toggle_focus"]:
@@ -380,7 +380,7 @@ class BassUI:
     # ------------------------------------------------------------------ #
     def _update_lib_items(self):
         self.lib_items = [
-            {"type": "header", "name": "📻 Radios Online"},
+            {"type": "header", "name": "📻 Online Radio"},
             {"name": "💻 Lofi Girl (YouTube Live)", "url": "https://www.youtube.com/watch?v=jfKfPfyJRdk", "type": "radio"},
             {"name": "💻 Groove Salad (SomaFM)", "url": "https://ice1.somafm.com/groovesalad-256-mp3", "type": "radio"},
             {"name": "💻 DEF CON (SomaFM)", "url": "https://ice1.somafm.com/defcon-256-mp3", "type": "radio"},
@@ -394,7 +394,7 @@ class BassUI:
             {"name": "⚡ Indie Pop Rocks!", "url": "https://ice1.somafm.com/indiepop-128-mp3", "type": "radio"},
             {"name": "⚡ Beat Blender (SomaFM)", "url": "https://ice1.somafm.com/beatblender-128-mp3", "type": "radio"},
             
-            {"type": "header", "name": "🧠 Smart Filtros"},
+            {"type": "header", "name": "🧠 Smart Mixes"},
             {"type": "smart", "name": "🎸 Rock"},
             {"type": "smart", "name": "🥁 Pop"},
             {"type": "smart", "name": "🧘 Zen/Chill"},
@@ -442,7 +442,7 @@ class BassUI:
         self.scr.erase()
         h, w = self.scr.getmaxyx()
         if h < 16 or w < 40:
-            self.scr.addstr(0, 0, "Agrandá la terminal para usar Bass 🎧"[: w - 1])
+            self.scr.addstr(0, 0, "Enlarge the terminal to use Bass 🎧"[: w - 1])
             self.scr.refresh()
             return
 
@@ -460,7 +460,7 @@ class BassUI:
         self.scr.refresh()
 
     def _draw_header(self, w):
-        title = " BASS -- reproductor de musica en terminal "
+        title = " BASS -- terminal music player "
         self.scr.attron(curses.color_pair(config.COLOR_HEADER))
         try:
             self.scr.addstr(0, 0, title.ljust(w)[:w])
@@ -570,19 +570,19 @@ class BassUI:
         style = getattr(self, 'spec_style', 0)
         
         if style == 0:
-            chars = "  ▂▃▄▅▆▇█"
+            chars = "  ▂▃▄▅▆▇█"  # Classic Gradient
             c_low, c_mid, c_hi = config.COLOR_BAR_LOW, config.COLOR_BAR_MID, config.COLOR_BAR_HIGH
         elif style == 1:
-            chars = " ░▒▓█"
+            chars = " ││││"      # Thin Lines (Professional/Clean)
             c_low, c_mid, c_hi = config.COLOR_HEADER, config.COLOR_HEADER, config.COLOR_HEADER
         elif style == 2:
-            chars = " -~="
+            chars = " ·•●*"      # Dots (Retro)
             c_low, c_mid, c_hi = config.COLOR_SELECTED, config.COLOR_SELECTED, config.COLOR_SELECTED
         else:
-            chars = " ·:│┃"
+            chars = " ░▒▓█"      # Digital / Cyberpunk
             c_low, c_mid, c_hi = config.COLOR_PLAYING, config.COLOR_PLAYING, config.COLOR_PLAYING
             
-        title = f" E S P E C T R O   E N   V I V O  (v = estilo {style+1}/4) " if self.spectrum.live else " ( S I M U L A D O ) "
+        title = f" L I V E   S P E C T R U M  (v = style {style+1}/4) " if self.spectrum.live else " ( S I M U L A T E D ) "
         try:
             self.scr.addstr(start_y - 1, max(0, (w - len(title)) // 2), title, curses.color_pair(config.COLOR_DIM))
         except:
@@ -626,11 +626,11 @@ class BassUI:
             pass
 
     def _draw_footer(self, h, w):
-        state = "II Pausa" if self.player.is_paused else "▶ Reproduciendo"
+        state = "II Paused" if self.player.is_paused else "▶ Playing"
         vol = self.player.volume
         muted = " (mute)" if self.player.is_muted else ""
         shuf = "ON" if self.player.shuffle_on else "OFF"
-        rep = ["OFF", "UNA", "TODAS"][self.player.repeat_mode]
+        rep = ["OFF", "ONE", "ALL"][self.player.repeat_mode]
         line = f"{state} | Vol {vol}%{muted} | Shuffle {shuf} | Repetir {rep} | ? = ayuda"
         try:
             self.scr.addstr(h - 1, 0, line[: w - 1], curses.color_pair(config.COLOR_DIM))
@@ -644,7 +644,7 @@ class BassUI:
             return
         gains = self.player.eq_gains
         top = 2
-        header = " ECUALIZADOR (Tab para enfocar) "
+        header = " EQUALIZER (Tab to focus) "
         try:
             self.scr.addstr(top, x0, header[: eq_width], curses.A_BOLD)
         except curses.error:
