@@ -583,16 +583,16 @@ class BassUI:
         style = getattr(self, 'spec_style', 0)
         
         if style == 0:
-            chars = "  ▂▃▄▅▆▇█"  # 1. Classic Blocks
+            chars = " ▂▃▄▅▆▇█"  # 1. Classic Blocks
             c_low, c_mid, c_hi = config.COLOR_BAR_LOW, config.COLOR_BAR_MID, config.COLOR_BAR_HIGH
         elif style == 1:
-            chars = " ░▒▓█"      # 2. Digital Shadow
+            chars = "░▒▓█"      # 2. Digital Shadow
             c_low, c_mid, c_hi = config.COLOR_HEADER, config.COLOR_HEADER, config.COLOR_HEADER
         elif style == 2:
-            chars = " -+*#"      # 3. Pure ASCII (100% compatible)
+            chars = "-+*#"      # 3. Pure ASCII (100% compatible)
             c_low, c_mid, c_hi = config.COLOR_PLAYING, config.COLOR_PLAYING, config.COLOR_PLAYING
         else:
-            chars = " ·:│┃"      # 4. Matrix Lines
+            chars = "·:│┃"      # 4. Matrix Lines
             c_low, c_mid, c_hi = config.COLOR_EQ_ACTIVE, config.COLOR_EQ_ACTIVE, config.COLOR_EQ_ACTIVE
             
         title = f" L I V E   S P E C T R U M  (v = style {style+1}/4) " if self.spectrum.live else " ( S I M U L A T E D ) "
