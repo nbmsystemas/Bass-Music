@@ -269,6 +269,12 @@ class BassUI:
                     if keyword == "zen/chill": keyword = "zen"
                     self.filter_text = keyword
                     self.focus = "playlist"
+                elif item["type"] == "radio":
+                    from player import save_playlist
+                    self.player.add(item["url"])
+                    save_playlist(self.player.playlist)
+                    self.player.play_index(len(self.player.playlist) - 1)
+                    self.status_msg = f"Starting radio..."
                 elif item["type"] == "dir":
                     self.lib_path = item["path"]
                     self._update_lib_items()
@@ -330,40 +336,46 @@ class BassUI:
             return False
 
         h, w = self.scr.getmaxyx()
+        lib_w = max(25, w // 4)
 
-        # Scroll del mouse sobre la playlist
         if bstate & getattr(curses, "BUTTON4_PRESSED", 0):
-            self.cursor = max(0, self.cursor - 1)
-            if self.cursor < self._scroll:
-                self._scroll = self.cursor
+            if mx < lib_w and self.focus == "library":
+                self.lib_cursor = max(0, self.lib_cursor - 1)
+                if self.lib_cursor < self.lib_scroll: self.lib_scroll = self.lib_cursor
+            else:
+                self.cursor = max(0, self.cursor - 1)
+                if self.cursor < self._scroll: self._scroll = self.cursor
             return False
+            
         if bstate & getattr(curses, "BUTTON5_PRESSED", 0):
-            rows = self._visible_rows()
-            h_inner, _ = self.scr.getmaxyx()
-            visible_h = max(1, h_inner - 9 - 2)
-            self.cursor = min(max(0, len(rows) - 1), self.cursor + 1)
-            if self.cursor >= self._scroll + visible_h:
-                self._scroll = self.cursor - visible_h + 1
+            if mx < lib_w and self.focus == "library":
+                visible_h = max(1, h - 9)
+                self.lib_cursor = min(max(0, len(self.lib_items) - 1), self.lib_cursor + 1)
+                if self.lib_cursor >= self.lib_scroll + visible_h: self.lib_scroll = self.lib_cursor - visible_h + 1
+            else:
+                rows = self._visible_rows()
+                visible_h = max(1, h - 9)
+                self.cursor = min(max(0, len(rows) - 1), self.cursor + 1)
+                if self.cursor >= self._scroll + visible_h: self._scroll = self.cursor - visible_h + 1
             return False
 
         if bstate & curses.BUTTON1_CLICKED or bstate & curses.BUTTON1_DOUBLE_CLICKED:
-            lib_w = max(25, w // 4)
-            playlist_top, playlist_bottom = 2, h - 9
-            progress_row = h - 4
+            playlist_top, playlist_bottom = 1, h - 9
+            progress_row = h - 3
 
             if my == progress_row:
                 dur = self.player.duration
                 if dur > 0:
                     frac = max(0, min(1, mx / max(1, w - 1)))
                     self.player.seek(frac * dur - self.player.position)
-            elif playlist_top <= my < playlist_bottom:
+            elif playlist_top <= my <= playlist_bottom:
                 if mx < lib_w:
                     self.focus = "library"
                     data_i = self.lib_scroll + (my - playlist_top)
                     if 0 <= data_i < len(self.lib_items):
                         self.lib_cursor = data_i
-                        if bstate & curses.BUTTON1_DOUBLE_CLICKED:
-                            self._handle_key_library(10)
+                        # Trigger enter event on click!
+                        self._handle_key_library(10)
                 else:
                     self.focus = "playlist"
                     data_i = self._scroll + (my - playlist_top)
@@ -371,8 +383,7 @@ class BassUI:
                     if data_i < len(rows):
                         real_index = rows[data_i][0]
                         self.cursor = data_i
-                        if bstate & curses.BUTTON1_DOUBLE_CLICKED or bstate & curses.BUTTON1_CLICKED:
-                            self.player.play_index(real_index)
+                        self.player.play_index(real_index)
         return False
 
     # ------------------------------------------------------------------ #
