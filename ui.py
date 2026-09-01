@@ -16,6 +16,24 @@ Este patrón es el mismo que usan videojuegos, editores como vim/htop, etc.
 from __future__ import annotations
 
 import curses
+import json
+import pathlib
+
+_UI_STATE_FILE = pathlib.Path.home() / ".config" / "bass" / "ui_state.json"
+
+def save_ui_state(style: int) -> None:
+    try:
+        _UI_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _UI_STATE_FILE.write_text(json.dumps({"spec_style": style}))
+    except:
+        pass
+
+def load_ui_state() -> int:
+    try:
+        return json.loads(_UI_STATE_FILE.read_text()).get("spec_style", 0)
+    except:
+        return 0
+
 import os
 
 import config
@@ -42,6 +60,7 @@ class BassUI:
         self.eq_band = 0                # banda seleccionada en el EQ
         self.show_eq = True
         self.show_help = False
+        self.spec_style = load_ui_state()
         self.filter_text = ""
         self._scroll = 0  # top-of-viewport index into visible rows
 
