@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/nbmsystemas/Bass-Music/main/docs/logo.png" alt="Bass Music Logo" width="200"/>
+  <h1>🎵</h1>
   <h1>Bass Music</h1>
   <p><strong>A Professional Terminal Music Player (TUI)</strong></p>
   
