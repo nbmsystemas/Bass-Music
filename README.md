@@ -1,5 +1,6 @@
 <div align="center">
-  <h1>🎵</h1>
+  <img src="https://raw.githubusercontent.com/nbmsystemas/Bass-Music/main/image/logo.png" alt="Bass Music Logo" width="200"/>
+  <h1>Bass Music</h1>
   <h1>Bass Music</h1>
   <p><strong>A Professional Terminal Music Player (TUI)</strong></p>
   
@@ -31,56 +32,39 @@ Whether you want to play local high-fidelity FLAC files, stream a live online ra
 
 ---
 
-## 🚀 Installation
+## 🚀 Installation & Updates
 
-### 1. System Dependencies
-
-Bass uses `mpv` as its audio engine. You need to install it on your system first:
-
-```bash
-# Debian / Ubuntu / Pop!_OS
-sudo apt update && sudo apt install mpv
-
-# Fedora
-sudo dnf install mpv
-
-# macOS (Homebrew)
-brew install mpv
-
-# Arch Linux
-sudo pacman -S mpv
-```
-
-### 2. Setup Bass Music
-
-Clone the repository and run the setup script:
+**One-Step Install / Update:**
+Copy and paste this single command into your terminal. It will install all dependencies, download Bass, and create a global command so you can launch it from anywhere.
 
 ```bash
-git clone https://github.com/nbmsystemas/Bass-Music.git
-cd Bass-Music
-
-# Create a virtual environment and install Python dependencies
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-pip install yt-dlp  # Required for YouTube/SoundCloud streaming
+curl -sL https://raw.githubusercontent.com/nbmsystemas/Bass-Music/main/install.sh | bash
 ```
+
+*Note: The script automatically detects `apt` (Ubuntu/Debian) or `pacman` (Arch) to install `mpv`.*
+
+### Maintenance Commands
+
+Bass includes built-in commands to manage itself directly from the terminal:
+
+- **Update to latest version:** `bass --update` (Automatically fetches new features and updates yt-dlp)
+- **Uninstall completely:** `bass --uninstall`
 
 ---
 
 ## 🎮 Usage
 
-You can launch Bass Music using the included wrapper script (no need to manually activate the virtual environment every time):
+Launch Bass Music from anywhere by simply typing:
 
 ```bash
-# 1. Start the player (loads your saved playlist from previous sessions)
-./bass
+# 1. Start the player (loads your saved playlist and local library)
+bass
 
 # 2. Play a specific YouTube video or stream URL directly
-./bass "https://www.youtube.com/watch?v=p0OH206z9Wg"
+bass "https://www.youtube.com/watch?v=p0OH206z9Wg"
 
-# 3. Play a local folder or file
-./bass ~/Music/MyAlbum
+# 3. Play a local folder or file directly
+bass ~/Music/MyAlbum
 ```
 
 ### Controls
