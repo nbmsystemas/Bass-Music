@@ -359,7 +359,7 @@ class BassUI:
                 if self.cursor >= self._scroll + visible_h: self._scroll = self.cursor - visible_h + 1
             return False
 
-        if bstate & curses.BUTTON1_CLICKED or bstate & curses.BUTTON1_DOUBLE_CLICKED:
+        if bstate & (curses.BUTTON1_CLICKED | curses.BUTTON1_PRESSED) or bstate & curses.BUTTON1_DOUBLE_CLICKED:
             playlist_top, playlist_bottom = 1, h - 9
             progress_row = h - 3
 
@@ -516,12 +516,14 @@ class BassUI:
                 if item["type"] == "dir": prefix = "📁 "
                 elif item["type"] == "file": prefix = "🎵 "
                 elif item["type"] == "smart": prefix = "   "
+                elif item["type"] == "radio": prefix = "📻 "
                 line = f"{prefix}{item['name']}"
                 line = line[:lib_w - 1].ljust(lib_w - 1)
                 
                 attr = curses.color_pair(config.COLOR_DEFAULT)
-                if data_i == self.lib_cursor and self.focus == "library":
-                    attr = curses.color_pair(config.COLOR_SELECTED)
+                
+            if data_i == self.lib_cursor and self.focus == "library":
+                attr = curses.color_pair(config.COLOR_SELECTED)
                     
             try:
                 self.scr.addstr(y, 0, line, attr)
@@ -553,10 +555,10 @@ class BassUI:
             line = line[: list_w - 1].ljust(list_w - 1)
 
             attr = curses.color_pair(config.COLOR_DEFAULT)
+            if real_i == cur_i:
+                attr = curses.color_pair(config.COLOR_PLAYING) | curses.A_BOLD
             if data_i == self.cursor and self.focus == "playlist":
                 attr = curses.color_pair(config.COLOR_SELECTED)
-            elif real_i == cur_i:
-                attr = curses.color_pair(config.COLOR_PLAYING) | curses.A_BOLD
 
             try:
                 self.scr.addstr(y, lib_w + 1, line, attr)
@@ -581,17 +583,17 @@ class BassUI:
         style = getattr(self, 'spec_style', 0)
         
         if style == 0:
-            chars = "  ▂▃▄▅▆▇█"  # Classic Gradient
+            chars = "  ▂▃▄▅▆▇█"  # 1. Classic Blocks
             c_low, c_mid, c_hi = config.COLOR_BAR_LOW, config.COLOR_BAR_MID, config.COLOR_BAR_HIGH
         elif style == 1:
-            chars = " ││││"      # Thin Lines (Professional/Clean)
+            chars = " ░▒▓█"      # 2. Digital Shadow
             c_low, c_mid, c_hi = config.COLOR_HEADER, config.COLOR_HEADER, config.COLOR_HEADER
         elif style == 2:
-            chars = " ·•●*"      # Dots (Retro)
-            c_low, c_mid, c_hi = config.COLOR_SELECTED, config.COLOR_SELECTED, config.COLOR_SELECTED
-        else:
-            chars = " ░▒▓█"      # Digital / Cyberpunk
+            chars = " -+*#"      # 3. Pure ASCII (100% compatible)
             c_low, c_mid, c_hi = config.COLOR_PLAYING, config.COLOR_PLAYING, config.COLOR_PLAYING
+        else:
+            chars = " ·:│┃"      # 4. Matrix Lines
+            c_low, c_mid, c_hi = config.COLOR_EQ_ACTIVE, config.COLOR_EQ_ACTIVE, config.COLOR_EQ_ACTIVE
             
         title = f" L I V E   S P E C T R U M  (v = style {style+1}/4) " if self.spectrum.live else " ( S I M U L A T E D ) "
         try:
