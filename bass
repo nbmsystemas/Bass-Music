@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# bass — launch script for the Bass TUI music player
+# Usage: ./bass [files/folders/URLs ...]
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$DIR/venv/bin/python" "$DIR/bass.py" "$@"
