@@ -24,22 +24,27 @@ Whether you want to play local high-fidelity FLAC files, stream a live online ra
 
 ---
 
-## 🚀 Installation & Updates
+## 🚀 Installation & Compatibility
 
-**One-Step Install / Update:**
-Copy and paste this single command into your terminal. It will install all dependencies, download Bass, and create a global command so you can launch it from anywhere.
+**Platform Support:**
+- 🐧 **Linux:** Fully supported (Arch, Ubuntu, Fedora, etc.).
+- 🍎 **macOS:** Fully supported via Homebrew.
+- 🪟 **Windows:** Supported natively via WSL (Windows Subsystem for Linux).
+
+### 1-Step Installation (Local Installer)
+
+Since this repository is private, anonymous `curl` downloads won't work. To install Bass globally on your system, simply clone the repo and run the installer script:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/nbmsystemas/Bass-Music/main/install.sh | bash
+git clone https://github.com/nbmsystemas/Bass-Music.git
+cd Bass-Music
+./install.sh
 ```
 
-*Note: The script automatically detects `apt` (Ubuntu/Debian) or `pacman` (Arch) to install `mpv`.*
+*Note: The script automatically detects your package manager (`apt`, `pacman`, or `brew`) to install `mpv`, sets up an isolated Python environment, and creates the global `bass` command.*
 
 ### Maintenance Commands
 
-Bass includes built-in commands to manage itself directly from the terminal:
-
-- **Update to latest version:** `bass --update` (Automatically fetches new features and updates yt-dlp)
 - **Uninstall completely:** `bass --uninstall`
 
 ---
