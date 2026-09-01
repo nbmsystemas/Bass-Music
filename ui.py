@@ -361,11 +361,26 @@ class BassUI:
     # ------------------------------------------------------------------ #
     def _update_lib_items(self):
         self.lib_items = [
-            {"type": "header", "name": "🧠 Smart Mixes"},
+            {"type": "header", "name": "📻 Radios Online"},
+            {"name": "💻 Lofi Girl (YouTube Live)", "url": "https://www.youtube.com/watch?v=jfKfPfyJRdk", "type": "radio"},
+            {"name": "💻 Groove Salad (SomaFM)", "url": "https://ice1.somafm.com/groovesalad-256-mp3", "type": "radio"},
+            {"name": "💻 DEF CON (SomaFM)", "url": "https://ice1.somafm.com/defcon-256-mp3", "type": "radio"},
+            {"name": "🌃 Nightride FM (Synthwave)", "url": "https://stream.nightride.fm/nightride.m4a", "type": "radio"},
+            {"name": "🧠 Drone Zone (SomaFM)", "url": "https://ice1.somafm.com/dronezone-256-mp3", "type": "radio"},
+            {"name": "🧠 Deep Space One (Soma)", "url": "https://ice1.somafm.com/deepspaceone-128-mp3", "type": "radio"},
+            {"name": "🎻 BBC Radio 3 (Clásica)", "url": "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_three", "type": "radio"},
+            {"name": "🎻 Classic FM", "url": "http://media-ice.musicradio.com/ClassicFMMP3", "type": "radio"},
+            {"name": "⚡ Radio Paradise (Rock)", "url": "http://stream.radioparadise.com/aac-320", "type": "radio"},
+            {"name": "⚡ PopTron (SomaFM)", "url": "https://ice1.somafm.com/poptron-128-mp3", "type": "radio"},
+            {"name": "⚡ Indie Pop Rocks!", "url": "https://ice1.somafm.com/indiepop-128-mp3", "type": "radio"},
+            {"name": "⚡ Beat Blender (SomaFM)", "url": "https://ice1.somafm.com/beatblender-128-mp3", "type": "radio"},
+            
+            {"type": "header", "name": "🧠 Smart Filtros"},
             {"type": "smart", "name": "🎸 Rock"},
             {"type": "smart", "name": "🥁 Pop"},
             {"type": "smart", "name": "🧘 Zen/Chill"},
             {"type": "smart", "name": "🥳 Alegre"},
+            
             {"type": "header", "name": "📁 Local Music"},
         ]
         
