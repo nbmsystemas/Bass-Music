@@ -27,6 +27,25 @@ from config import EQ_BANDS_HZ, EQ_MIN_GAIN, EQ_MAX_GAIN
 
 # Playlist persistence — stored at ~/.config/bass/playlist.json
 _PLAYLIST_FILE = pathlib.Path.home() / ".config" / "bass" / "playlist.json"
+_STATE_FILE = pathlib.Path.home() / ".config" / "bass" / "state.json"
+
+def save_state(player) -> None:
+    try:
+        _STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        data = {
+            "volume": player.volume,
+            "is_muted": player.is_muted,
+            "eq_gains": player.eq_gains
+        }
+        _STATE_FILE.write_text(json.dumps(data))
+    except Exception:
+        pass
+
+def load_state() -> dict:
+    try:
+        return json.loads(_STATE_FILE.read_text())
+    except Exception:
+        return {}
 
 
 def save_playlist(playlist: list) -> None:
@@ -205,9 +224,11 @@ class Player:
     def set_volume(self, delta: int):
         vol = max(0, min(150, int(self.mpv.volume) + delta))
         self.mpv.volume = vol
+        save_state(self)
 
     def toggle_mute(self):
         self.mpv.mute = not self.mpv.mute
+        save_state(self)
 
     @property
     def volume(self) -> int:
@@ -246,10 +267,12 @@ class Player:
         gain = max(EQ_MIN_GAIN, min(EQ_MAX_GAIN, gain))
         self.eq_gains[band_index] = gain
         self._apply_eq()
+        save_state(self)
 
     def apply_preset(self, gains: list[int]):
         self.eq_gains = list(gains)
         self._apply_eq()
+        save_state(self)
 
     def _apply_eq(self):
         filters = ",".join(
