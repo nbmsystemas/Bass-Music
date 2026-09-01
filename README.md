@@ -1,18 +1,10 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/nbmsystemas/Bass-Music/main/image/logo.png" alt="Bass Music Logo" width="200"/>
-  <h1>Bass Music</h1>
+  <img src="image/logo.png" alt="Bass Music Logo" width="200"/>
   <h1>Bass Music</h1>
   <p><strong>A Professional Terminal Music Player (TUI)</strong></p>
-  
-  <p>
-    <a href="https://github.com/nbmsystemas/Bass-Music/commits/main"><img src="https://img.shields.io/github/last-commit/nbmsystemas/Bass-Music?style=flat-square" alt="Last Commit"></a>
-    <a href="https://github.com/nbmsystemas/Bass-Music/issues"><img src="https://img.shields.io/github/issues/nbmsystemas/Bass-Music?style=flat-square" alt="Issues"></a>
-    <a href="https://github.com/nbmsystemas/Bass-Music/network/members"><img src="https://img.shields.io/github/forks/nbmsystemas/Bass-Music?style=flat-square" alt="Forks"></a>
-    <a href="https://github.com/nbmsystemas/Bass-Music/stargazers"><img src="https://img.shields.io/github/stars/nbmsystemas/Bass-Music?style=flat-square" alt="Stars"></a>
-    <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License"></a>
-  </p>
 </div>
 
+---
 ---
 
 ## 🎵 Overview
