@@ -98,6 +98,12 @@ class SpectrumAnalyzer:
 
             # AGC (Control Automático de Ganancia) y Suavizado
             peak = out.max()
+            
+            # Si hay silencio absoluto (ej. cargando stream o mic apagado), usamos el fake_levels para que se vea profesional y siempre vivo
+            if peak < 0.005:
+                self.levels = self._fake_levels()
+                return self.levels
+
             self._rolling_max = self._rolling_max * 0.95 + peak * 0.05
             if self._rolling_max < 0.01:
                 self._rolling_max = 0.01
@@ -141,11 +147,22 @@ class SpectrumAnalyzer:
         return np.log1p(out)
 
     def _fake_levels(self) -> np.ndarray:
-        self._t += 0.15
+        import random
+        self._t += 0.2
         x = np.linspace(0, np.pi * 2, self.bars)
-        wave = (np.sin(x * 2 + self._t) + 1) / 2
-        wave *= (np.sin(self._t * 0.5) + 1.4) / 2.4
-        return np.clip(wave, 0.05, 1)
+        # Combine multiple sine waves and some random noise for a realistic "music" look
+        wave = (np.sin(x * 3 + self._t) * 0.4 + 
+                np.cos(x * 5 - self._t * 1.5) * 0.3 + 
+                0.3)
+        # Add a bass beat effect on the left side
+        beat = (np.sin(self._t * 2) ** 4) * 0.5
+        for i in range(min(10, self.bars)):
+            wave[i] += beat * (1.0 - i/10.0)
+            
+        # Add micro-noise
+        noise = np.array([random.uniform(-0.1, 0.1) for _ in range(self.bars)])
+        wave = wave + noise
+        return np.clip(wave, 0.02, 1.0)
 
     def close(self):
         if self._stream is not None:

@@ -72,7 +72,7 @@ class BassUI:
             self.lib_path = m_en
         else:
             self.lib_path = os.path.expanduser("~")
-        self.lib_cursor = 0
+        self.lib_cursor = 1
         self.lib_scroll = 0
         self.lib_items = []
         self._update_lib_items()
@@ -278,7 +278,7 @@ class BassUI:
                 elif item["type"] == "dir":
                     self.lib_path = item["path"]
                     self._update_lib_items()
-                    self.lib_cursor = 0
+                    self.lib_cursor = 1
                     self.lib_scroll = 0
                 elif item["type"] == "file":
                     self._add_path(item["path"])
@@ -512,17 +512,16 @@ class BassUI:
                 line = item["name"][:lib_w - 1].ljust(lib_w - 1)
                 attr = curses.color_pair(config.COLOR_DIM) | curses.A_BOLD
             else:
-                prefix = "  "
-                if item["type"] == "dir": prefix = "📁 "
+                prefix = "   "
+                if item["type"] == "dir" and item["name"] == "..": prefix = "📁 "
+                elif item["type"] == "dir": prefix = "📁 "
                 elif item["type"] == "file": prefix = "🎵 "
-                elif item["type"] == "smart": prefix = "   "
-                elif item["type"] == "radio": prefix = "📻 "
+                
                 line = f"{prefix}{item['name']}"
                 line = line[:lib_w - 1].ljust(lib_w - 1)
-                
                 attr = curses.color_pair(config.COLOR_DEFAULT)
                 
-            if data_i == self.lib_cursor and self.focus == "library":
+            if data_i == self.lib_cursor and self.focus == "library" and item["type"] != "header":
                 attr = curses.color_pair(config.COLOR_SELECTED)
                     
             try:
