@@ -190,6 +190,9 @@ class BassUI:
             self.player.cycle_repeat()
             names = ["OFF", "UNA", "TODAS"]
             self.status_msg = f"Repetir: {names[self.player.repeat_mode]}"
+        elif ch == ord('v'):
+            self.spec_style = (getattr(self, 'spec_style', 0) + 1) % 4
+            self.status_msg = f"Visualizador: Estilo {self.spec_style + 1}"
         elif ch in K["toggle_eq"]:
             self.show_eq = not self.show_eq
         elif ch in K["toggle_focus"]:
@@ -404,7 +407,7 @@ class BassUI:
     def _draw(self):
         self.scr.erase()
         h, w = self.scr.getmaxyx()
-        if h < 12 or w < 40:
+        if h < 16 or w < 40:
             self.scr.addstr(0, 0, "Agrandá la terminal para usar Bass 🎧"[: w - 1])
             self.scr.refresh()
             return
@@ -439,11 +442,11 @@ class BassUI:
             pass
 
     def _draw_library(self, h, w, lib_w):
-        top, bottom = 1, h - 7
+        top, bottom = 1, h - 9
         visible_h = max(1, bottom - top)
         
         # separator
-        for y in range(top, h - 6):
+        for y in range(top, h - 8):
             try:
                 self.scr.addstr(y, lib_w, "│", curses.color_pair(config.COLOR_DIM))
             except curses.error:
@@ -481,7 +484,7 @@ class BassUI:
                 pass
 
     def _draw_playlist(self, h, w, lib_w):
-        top, bottom = 1, h - 7  # fixed: was h-8, now h-9 to avoid spectrum label collision (M-5)
+        top, bottom = 1, h - 9  # fixed: was h-8, now h-9 to avoid spectrum label collision (M-5)
         eq_width = 34 if self.show_eq else 0
         list_w = max(10, w - lib_w - eq_width - 2)
         visible_h = max(1, bottom - top)
@@ -525,14 +528,27 @@ class BassUI:
     def _draw_spectrum(self, h, w, lib_w):
         levels = self.spectrum.update()
         spec_h = 4
-        start_y = h - 6
+        start_y = h - 7
         avail_w = w - 2
         n = min(len(levels), avail_w)
         offset_x = max(0, (w - n) // 2)
-        chars = "  ▂▃▄▅▆▇█"
         
-        # Dibuja título centrado
-        title = " E S P E C T R O   E N   V I V O " if self.spectrum.live else " ( S I M U L A D O ) "
+        style = getattr(self, 'spec_style', 0)
+        
+        if style == 0:
+            chars = "  ▂▃▄▅▆▇█"
+            c_low, c_mid, c_hi = config.COLOR_BAR_LOW, config.COLOR_BAR_MID, config.COLOR_BAR_HIGH
+        elif style == 1:
+            chars = " ░▒▓█"
+            c_low, c_mid, c_hi = config.COLOR_HEADER, config.COLOR_HEADER, config.COLOR_HEADER
+        elif style == 2:
+            chars = " -~="
+            c_low, c_mid, c_hi = config.COLOR_SELECTED, config.COLOR_SELECTED, config.COLOR_SELECTED
+        else:
+            chars = " ·:│┃"
+            c_low, c_mid, c_hi = config.COLOR_PLAYING, config.COLOR_PLAYING, config.COLOR_PLAYING
+            
+        title = f" E S P E C T R O   E N   V I V O  (v = estilo {style+1}/4) " if self.spectrum.live else " ( S I M U L A D O ) "
         try:
             self.scr.addstr(start_y - 1, max(0, (w - len(title)) // 2), title, curses.color_pair(config.COLOR_DIM))
         except:
@@ -541,9 +557,9 @@ class BassUI:
         for i in range(n):
             v = levels[i]
             val = v * spec_h
-            if v < 0.4: color = config.COLOR_BAR_LOW
-            elif v < 0.7: color = config.COLOR_BAR_MID
-            else: color = config.COLOR_BAR_HIGH
+            if v < 0.4: color = c_low
+            elif v < 0.7: color = c_mid
+            else: color = c_hi
             
             for row in range(spec_h):
                 y = start_y + (spec_h - 1 - row)
@@ -558,7 +574,7 @@ class BassUI:
                     pass
 
     def _draw_progress(self, h, w, lib_w):
-        row = h - 4
+        row = h - 3
         pos, dur = self.player.position, self.player.duration
         frac = (pos / dur) if dur else 0
         eq_width = 34 if self.show_eq else 0
