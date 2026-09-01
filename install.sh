@@ -3,6 +3,7 @@ set -e
 
 INSTALL_DIR="$HOME/.local/share/Bass-Music"
 BIN_DIR="$HOME/.local/bin"
+REPO_URL="https://github.com/nbmsystemas/Bass-Music.git"
 
 echo "🎵 Iniciando instalación de Bass Music..."
 
@@ -18,12 +19,15 @@ else
     echo "⚠️  No se detectó pacman, apt ni brew. Por favor, instala 'mpv' manualmente."
 fi
 
-# 2. Copiar repositorio al directorio de instalación
+# 2. Descargar repositorio al directorio de instalación
 echo "📥 Instalando Bass Music en $INSTALL_DIR..."
-mkdir -p "$INSTALL_DIR"
-cp -r ./* "$INSTALL_DIR/" 2>/dev/null || true
-
-cd "$INSTALL_DIR"
+if [ -d "$INSTALL_DIR" ]; then
+    cd "$INSTALL_DIR"
+    git pull origin main --quiet
+else
+    git clone "$REPO_URL" "$INSTALL_DIR" --quiet
+    cd "$INSTALL_DIR"
+fi
 
 # 3. Entorno virtual de Python
 echo "🐍 Configurando entorno virtual y librerías..."
@@ -46,6 +50,15 @@ if [ "$1" == "--uninstall" ]; then
     rm -rf "$INSTALL_DIR"
     rm -f "$HOME/.local/bin/bass"
     echo "✅ ¡Desinstalado por completo!"
+    exit 0
+elif [ "$1" == "--update" ]; then
+    echo "🔄 Actualizando Bass Music..."
+    cd "$INSTALL_DIR"
+    git pull origin main
+    source venv/bin/activate
+    pip install -r requirements.txt --quiet
+    pip install --upgrade yt-dlp --quiet
+    echo "✅ ¡Actualizado exitosamente!"
     exit 0
 fi
 
