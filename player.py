@@ -74,10 +74,10 @@ class Player:
         # ytdl=True enables the yt-dlp hook so mpv can play YouTube, SoundCloud,
         # and hundreds of other sites. yt-dlp must be available on PATH — bass.py
         # injects venv/bin at startup so the bundled yt-dlp is always found.
-        # ytdl-format selects the best audio-only stream (no video download).
         self.mpv = mpv.MPV(
             ytdl=True,
             ytdl_format="bestaudio/best",
+            ytdl_raw_options="extractor-args=youtube:player-client=android_creator",
             video=False,
             input_default_bindings=False,
             input_vo_keyboard=False,

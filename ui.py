@@ -37,13 +37,27 @@ class BassUI:
         self.player = Player()
         self.spectrum = SpectrumAnalyzer()
 
-        self.focus = "playlist"        # "playlist" | "eq"
+        self.focus = "library"          # "library" | "playlist" | "eq"
         self.cursor = 0                 # fila seleccionada en playlist
         self.eq_band = 0                # banda seleccionada en el EQ
         self.show_eq = True
         self.show_help = False
         self.filter_text = ""
         self._scroll = 0  # top-of-viewport index into visible rows
+
+        m_es = os.path.expanduser("~/Música")
+        m_en = os.path.expanduser("~/Music")
+        if os.path.exists(m_es):
+            self.lib_path = m_es
+        elif os.path.exists(m_en):
+            self.lib_path = m_en
+        else:
+            self.lib_path = os.path.expanduser("~")
+        self.lib_cursor = 0
+        self.lib_scroll = 0
+        self.lib_items = []
+        self._update_lib_items()
+
         self.status_msg = "Bienvenido a Bass — pulsá ? para ver la ayuda"
 
         # Restore playlist from last session
@@ -179,7 +193,12 @@ class BassUI:
         elif ch in K["toggle_eq"]:
             self.show_eq = not self.show_eq
         elif ch in K["toggle_focus"]:
-            self.focus = "eq" if self.focus == "playlist" else "playlist"
+            if self.focus == "library":
+                self.focus = "playlist"
+            elif self.focus == "playlist":
+                self.focus = "eq" if self.show_eq else "library"
+            else:
+                self.focus = "library"
         elif ch in K["help"]:
             self.show_help = not self.show_help
         elif ch in K["add_file"]:
@@ -203,9 +222,38 @@ class BassUI:
                     self.cursor = min(self.cursor, max(0, len(self._visible_rows()) - 1))
         elif self.focus == "eq":
             self._handle_key_eq(ch)
+        elif self.focus == "library":
+            self._handle_key_library(ch)
         else:
             self._handle_key_playlist(ch)
         return False
+
+    def _handle_key_library(self, ch):
+        h, w = self.scr.getmaxyx()
+        visible_h = max(1, h - 9)
+        if ch in (curses.KEY_UP,):
+            self.lib_cursor = max(0, self.lib_cursor - 1)
+            if self.lib_cursor < self.lib_scroll:
+                self.lib_scroll = self.lib_cursor
+        elif ch in (curses.KEY_DOWN,):
+            self.lib_cursor = min(max(0, len(self.lib_items) - 1), self.lib_cursor + 1)
+            if self.lib_cursor >= self.lib_scroll + visible_h:
+                self.lib_scroll = self.lib_cursor - visible_h + 1
+        elif ch in (10, 13, curses.KEY_ENTER):
+            if self.lib_items and self.lib_cursor < len(self.lib_items):
+                item = self.lib_items[self.lib_cursor]
+                if item["type"] == "smart":
+                    keyword = item["name"].split(" ", 1)[-1].strip().lower()
+                    if keyword == "zen/chill": keyword = "zen"
+                    self.filter_text = keyword
+                    self.focus = "playlist"
+                elif item["type"] == "dir":
+                    self.lib_path = item["path"]
+                    self._update_lib_items()
+                    self.lib_cursor = 0
+                    self.lib_scroll = 0
+                elif item["type"] == "file":
+                    self._add_path(item["path"])
 
     def _handle_key_playlist(self, ch):
         rows = self._visible_rows()
@@ -277,27 +325,70 @@ class BassUI:
             return False
 
         if bstate & curses.BUTTON1_CLICKED or bstate & curses.BUTTON1_DOUBLE_CLICKED:
+            lib_w = max(25, w // 4)
             playlist_top, playlist_bottom = 2, h - 9
             progress_row = h - 4
 
-            if playlist_top <= my < playlist_bottom:
-                data_i = self._scroll + (my - playlist_top)
-                rows = self._visible_rows()
-                if data_i < len(rows):
-                    real_index = rows[data_i][0]
-                    self.cursor = data_i
-                    self.player.play_index(real_index)
-                    self.focus = "playlist"
-            elif my == progress_row:
+            if my == progress_row:
                 dur = self.player.duration
                 if dur > 0:
                     frac = max(0, min(1, mx / max(1, w - 1)))
                     self.player.seek(frac * dur - self.player.position)
+            elif playlist_top <= my < playlist_bottom:
+                if mx < lib_w:
+                    self.focus = "library"
+                    data_i = self.lib_scroll + (my - playlist_top)
+                    if 0 <= data_i < len(self.lib_items):
+                        self.lib_cursor = data_i
+                        if bstate & curses.BUTTON1_DOUBLE_CLICKED:
+                            self._handle_key_library(10)
+                else:
+                    self.focus = "playlist"
+                    data_i = self._scroll + (my - playlist_top)
+                    rows = self._visible_rows()
+                    if data_i < len(rows):
+                        real_index = rows[data_i][0]
+                        self.cursor = data_i
+                        if bstate & curses.BUTTON1_DOUBLE_CLICKED or bstate & curses.BUTTON1_CLICKED:
+                            self.player.play_index(real_index)
         return False
 
     # ------------------------------------------------------------------ #
     # Helpers de datos
     # ------------------------------------------------------------------ #
+    def _update_lib_items(self):
+        self.lib_items = [
+            {"type": "header", "name": "🧠 Smart Mixes"},
+            {"type": "smart", "name": "🎸 Rock"},
+            {"type": "smart", "name": "🥁 Pop"},
+            {"type": "smart", "name": "🧘 Zen/Chill"},
+            {"type": "smart", "name": "🥳 Alegre"},
+            {"type": "header", "name": "📁 Local Music"},
+        ]
+        
+        parent = os.path.dirname(self.lib_path) if self.lib_path != "/" else "/"
+        self.lib_items.append({"type": "dir", "name": "..", "path": parent})
+        
+        try:
+            entries = os.listdir(self.lib_path)
+            dirs = []
+            files = []
+            for e in entries:
+                full = os.path.join(self.lib_path, e)
+                if os.path.isdir(full):
+                    dirs.append(e)
+                elif os.path.isfile(full):
+                    ext = os.path.splitext(e)[1].lower()
+                    if ext in config.AUDIO_EXTS:
+                        files.append(e)
+            
+            for d in sorted(dirs):
+                self.lib_items.append({"type": "dir", "name": d, "path": os.path.join(self.lib_path, d)})
+            for f in sorted(files):
+                self.lib_items.append({"type": "file", "name": f, "path": os.path.join(self.lib_path, f)})
+        except Exception:
+            pass
+
     def _visible_rows(self):
         """Lista de (indice_real, track) filtrada por self.filter_text."""
         rows = []
@@ -318,10 +409,12 @@ class BassUI:
             self.scr.refresh()
             return
 
+        lib_w = max(25, w // 4)
         self._draw_header(w)
-        self._draw_playlist(h, w)
-        self._draw_spectrum(h, w)
-        self._draw_progress(h, w)
+        self._draw_library(h, w, lib_w)
+        self._draw_playlist(h, w, lib_w)
+        self._draw_spectrum(h, w, lib_w)
+        self._draw_progress(h, w, lib_w)
         self._draw_footer(h, w)
         if self.show_eq:
             self._draw_eq_panel(h, w)
@@ -345,10 +438,52 @@ class BassUI:
         except curses.error:
             pass
 
-    def _draw_playlist(self, h, w):
+    def _draw_library(self, h, w, lib_w):
+        top, bottom = 2, h - 9
+        visible_h = max(1, bottom - top)
+        
+        # separator
+        for y in range(top, h - 3):
+            try:
+                self.scr.addstr(y, lib_w, "│", curses.color_pair(config.COLOR_DIM))
+            except curses.error:
+                pass
+                
+        self.lib_scroll = max(0, min(self.lib_scroll, max(0, len(self.lib_items) - visible_h)))
+        if self.lib_items:
+            self.lib_cursor = max(0, min(self.lib_cursor, len(self.lib_items) - 1))
+            
+        for row_i in range(visible_h):
+            y = top + row_i
+            data_i = self.lib_scroll + row_i
+            if data_i >= len(self.lib_items):
+                continue
+                
+            item = self.lib_items[data_i]
+            if item["type"] == "header":
+                line = item["name"][:lib_w - 1].ljust(lib_w - 1)
+                attr = curses.color_pair(config.COLOR_DIM) | curses.A_BOLD
+            else:
+                prefix = "  "
+                if item["type"] == "dir": prefix = "📁 "
+                elif item["type"] == "file": prefix = "🎵 "
+                elif item["type"] == "smart": prefix = "   "
+                line = f"{prefix}{item['name']}"
+                line = line[:lib_w - 1].ljust(lib_w - 1)
+                
+                attr = curses.color_pair(config.COLOR_DEFAULT)
+                if data_i == self.lib_cursor and self.focus == "library":
+                    attr = curses.color_pair(config.COLOR_SELECTED)
+                    
+            try:
+                self.scr.addstr(y, 0, line, attr)
+            except curses.error:
+                pass
+
+    def _draw_playlist(self, h, w, lib_w):
         top, bottom = 2, h - 9  # fixed: was h-8, now h-9 to avoid spectrum label collision (M-5)
         eq_width = 34 if self.show_eq else 0
-        list_w = max(10, w - eq_width - 1)  # fixed: -1 gutter (H-7)
+        list_w = max(10, w - lib_w - eq_width - 2)
         visible_h = max(1, bottom - top)
 
         rows = self._visible_rows()
@@ -376,18 +511,18 @@ class BassUI:
                 attr = curses.color_pair(config.COLOR_PLAYING) | curses.A_BOLD
 
             try:
-                self.scr.addstr(y, 0, line, attr)
+                self.scr.addstr(y, lib_w + 1, line, attr)
             except curses.error:
                 pass
 
         if not rows:
             hint = "Playlist empty — press 'a' to add a file, 'u' for a URL"
             try:
-                self.scr.addstr(top, 0, hint[: list_w - 1], curses.color_pair(config.COLOR_DIM))
+                self.scr.addstr(top, lib_w + 1, hint[: list_w - 1], curses.color_pair(config.COLOR_DIM))
             except curses.error:
                 pass
 
-    def _draw_spectrum(self, h, w):
+    def _draw_spectrum(self, h, w, lib_w):
         row = h - 7
         levels = self.spectrum.update()
         eq_width = 34 if self.show_eq else 0
@@ -420,7 +555,7 @@ class BassUI:
         except curses.error:
             pass
 
-    def _draw_progress(self, h, w):
+    def _draw_progress(self, h, w, lib_w):
         row = h - 4
         pos, dur = self.player.position, self.player.duration
         frac = (pos / dur) if dur else 0
