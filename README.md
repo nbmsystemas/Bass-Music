@@ -2,9 +2,16 @@
   <img src="image/logo.png" alt="Bass Music Logo" width="200"/>
   <h1>Bass Music</h1>
   <p><strong>A Professional Terminal Music Player (TUI)</strong></p>
+  
+  <p>
+    <a href="https://github.com/nbmsystemas/Bass-Music/commits/main"><img src="https://img.shields.io/github/last-commit/nbmsystemas/Bass-Music?style=flat-square" alt="Last Commit"></a>
+    <a href="https://github.com/nbmsystemas/Bass-Music/issues"><img src="https://img.shields.io/github/issues/nbmsystemas/Bass-Music?style=flat-square" alt="Issues"></a>
+    <a href="https://github.com/nbmsystemas/Bass-Music/network/members"><img src="https://img.shields.io/github/forks/nbmsystemas/Bass-Music?style=flat-square" alt="Forks"></a>
+    <a href="https://github.com/nbmsystemas/Bass-Music/stargazers"><img src="https://img.shields.io/github/stars/nbmsystemas/Bass-Music?style=flat-square" alt="Stars"></a>
+    <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License"></a>
+  </p>
 </div>
 
----
 ---
 
 ## 🎵 Overview
@@ -16,11 +23,10 @@ Whether you want to play local high-fidelity FLAC files, stream a live online ra
 ### ✨ Key Features
 
 - **TUI & Mouse Support:** Fully interactive curses-based interface with both keyboard and mouse controls.
+- **Library Browser & Smart Mixes:** Navigate your local files or auto-filter your playlist by genres like Rock, Pop, or Zen directly from the sidebar.
 - **Universal Playback:** Plays local files (`.mp3`, `.flac`, `.wav`, etc.) and URLs (YouTube, SoundCloud, direct streams).
-- **10-Band Equalizer:** Live EQ with 6 built-in presets (Flat, Bass, Rock, Pop, Vocal, Electro).
-- **Live Spectrum Analyzer:** Visualizes the actual audio playing on your system in real-time (using PulseAudio/PipeWire monitor).
-- **Smart Playlist:** Search/filter your playlist on the fly, auto-saves between sessions.
-- **Zero-Friction Startup:** Includes a beautiful ASCII startup animation and an easy launch script.
+- **10-Band Equalizer:** Live EQ with 6 built-in presets.
+- **Professional Spectrum Analyzer:** Visualizes the actual audio playing on your system in real-time with exponential smoothing (gravity) and Automatic Gain Control (AGC).
 
 ---
 
@@ -31,17 +37,13 @@ Whether you want to play local high-fidelity FLAC files, stream a live online ra
 - 🍎 **macOS:** Fully supported via Homebrew.
 - 🪟 **Windows:** Supported natively via WSL (Windows Subsystem for Linux).
 
-### 1-Step Installation (Local Installer)
+### One-Step Install
 
-Since this repository is private, anonymous `curl` downloads won't work. To install Bass globally on your system, simply clone the repo and run the installer script:
+Open your terminal and paste the following command. It will automatically detect your OS, install dependencies (`mpv`), and configure Bass globally:
 
 ```bash
-git clone https://github.com/nbmsystemas/Bass-Music.git
-cd Bass-Music
-./install.sh
+curl -sL https://raw.githubusercontent.com/nbmsystemas/Bass-Music/main/install.sh | bash
 ```
-
-*Note: The script automatically detects your package manager (`apt`, `pacman`, or `brew`) to install `mpv`, sets up an isolated Python environment, and creates the global `bass` command.*
 
 ### Maintenance Commands
 
@@ -77,12 +79,11 @@ bass ~/Music/MyAlbum
 | `r` | Repeat Mode (Off → One → All) |
 | `a` | Add Local File or Folder |
 | `u` | Add URL (YouTube, SoundCloud, Radio, etc.) |
-| `d` | Scan and Add Entire Directory |
 | `x` | Remove Selected Track from Playlist |
 | `/` | Search / Filter Playlist |
-| `Tab` | Switch Focus (Playlist ↔ Equalizer) |
+| `Tab` | Switch Focus (Library ↔ Playlist ↔ Equalizer) |
 | `e` | Show / Hide Equalizer Panel |
-| `↑` `↓` | Navigate List or Adjust EQ Band (depending on focus) |
+| `↑` `↓` | Navigate List or Adjust EQ Band |
 | `←` `→` | Change EQ Band (when EQ is focused) |
 | `1`-`6` | Apply EQ Preset (Flat, Bass, Rock, Pop, Vocal, Electro) |
 | `?` | Show Help Overlay |
@@ -91,25 +92,13 @@ bass ~/Music/MyAlbum
 **Mouse Controls:**
 - **Left Click** on a track to play it.
 - **Left Click** on the progress bar to seek.
-- **Scroll Wheel** to navigate the playlist.
-
----
-
-## 🧠 Architecture & Tech Stack
-
-Bass Music is built with a strong focus on separation of concerns:
-
-- `bass.py`: Entry point, terminal initialization, and ASCII splash screen.
-- `player.py`: Core audio engine wrapping `mpv` via IPC (Inter-Process Communication). Thread-safe state management and playlist persistence.
-- `spectrum.py`: Real-time audio capture and Fast Fourier Transform (FFT) logic for the visualizer.
-- `ui.py`: The `curses` event loop, rendering engine, and input handling.
-- `config.py`: Centralized configuration for keybindings, colors, and EQ bands.
+- **Scroll Wheel** to navigate the playlist or library.
 
 ---
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/nbmsystemas/Bass-Music/issues).
+Contributions, issues, and feature requests are highly welcome! We want to make Bass the best terminal music player out there.
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
