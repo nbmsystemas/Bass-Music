@@ -110,16 +110,17 @@ class SpectrumAnalyzer:
             # AGC (Control Automático de Ganancia)
             peak = out.max()
             
-            # Si el nivel es extremadamente bajo, mostramos casi nada en lugar de fakes (comportamiento real)
-            if peak < 0.001:
+            # Noise gate real: si el pico es menor a 0.5 (silencio / ruido eléctrico), bajamos las barras a cero
+            if peak < 0.5:
                 self._smooth_levels *= (1 - self.smoothing_down)
                 self.levels = np.clip(self._smooth_levels, 0, 1)
                 return self.levels
 
             # Mantener un pico rodante para normalizar
             self._rolling_max = self._rolling_max * 0.98 + peak * 0.02
-            if self._rolling_max < 0.01:
-                self._rolling_max = 0.01
+            # CLAMP: Evitar que el _rolling_max baje demasiado para no amplificar ruido de fondo
+            if self._rolling_max < 3.0:
+                self._rolling_max = 3.0
             
             out = out / self._rolling_max
 
