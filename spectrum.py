@@ -84,33 +84,46 @@ class SpectrumAnalyzer:
 
         if self.live:
             try:
-                samples = self._q.get_nowait()
-                self._buffer = samples
+                # Drenar la cola y quedarse con el chunk más reciente
+                samples = None
+                while not self._q.empty():
+                    samples = self._q.get_nowait()
+                if samples is not None:
+                    self._buffer = samples
+                else:
+                    samples = self._buffer
             except Empty:
                 samples = self._buffer
 
             if samples is None or len(samples) == 0:
+                self.levels = np.zeros(self.bars)
                 return self.levels
 
+            # Ventana de Hanning para suavizar bordes del chunk
             windowed = samples * np.hanning(len(samples))
+            # FFT (magnitud)
             spectrum = np.abs(np.fft.rfft(windowed))
+            
+            # Agrupar en barras
             out = self._bucketize(spectrum)
 
-            # AGC (Control Automático de Ganancia) y Suavizado
+            # AGC (Control Automático de Ganancia)
             peak = out.max()
             
-            # Si hay silencio absoluto (ej. cargando stream o mic apagado), usamos el fake_levels para que se vea profesional y siempre vivo
-            if peak < 0.005:
-                self.levels = self._fake_levels()
+            # Si el nivel es extremadamente bajo, mostramos casi nada en lugar de fakes (comportamiento real)
+            if peak < 0.001:
+                self._smooth_levels *= (1 - self.smoothing_down)
+                self.levels = np.clip(self._smooth_levels, 0, 1)
                 return self.levels
 
-            self._rolling_max = self._rolling_max * 0.95 + peak * 0.05
+            # Mantener un pico rodante para normalizar
+            self._rolling_max = self._rolling_max * 0.98 + peak * 0.02
             if self._rolling_max < 0.01:
                 self._rolling_max = 0.01
             
             out = out / self._rolling_max
 
-            # Aplicar ataque y gravedad
+            # Aplicar ataque y gravedad (suavizado temporal)
             for i in range(self.bars):
                 if out[i] > self._smooth_levels[i]:
                     self._smooth_levels[i] = self._smooth_levels[i] * (1 - self.smoothing_up) + out[i] * self.smoothing_up
@@ -119,47 +132,61 @@ class SpectrumAnalyzer:
 
             self.levels = np.clip(self._smooth_levels, 0, 1)
         else:
+            # Solo usar fake levels si no hay tarjeta de sonido/numpy
             self.levels = self._fake_levels()
 
         return self.levels
 
     def _bucketize(self, spectrum: np.ndarray) -> np.ndarray:
-        # Rango de audición útil: cortamos los subs muy bajos y los ultrasónicos
         n = len(spectrum)
         if n < 2:
             return np.zeros(self.bars)
             
-        # Distribución logarítmica de bandas (parecido a Mel-scale)
-        edges = np.logspace(0, np.log10(n - 1), self.bars + 1).astype(int)
-        
         out = np.zeros(self.bars)
+        
+        # Logarithmic spacing for frequency bands
+        edges = np.logspace(0, np.log10(n - 1), self.bars + 1)
+        
         for i in range(self.bars):
-            lo, hi = edges[i], edges[i + 1]
-            if hi <= lo:
-                hi = lo + 1
-            if hi > n:
-                hi = n
-            out[i] = spectrum[lo:hi].mean() if hi > lo else 0.0
+            lo = edges[i]
+            hi = edges[i + 1]
             
-            # Compensación Pink Noise (los agudos tienen menos energía natural, los subimos visualmente)
-            out[i] *= (1.0 + (i / self.bars) * 2.5)
+            # Sub-bin width (low frequencies) -> Interpolate
+            if hi - lo < 1.0:
+                center = (lo + hi) / 2
+                idx = int(center)
+                frac = center - idx
+                if idx + 1 < n:
+                    val = spectrum[idx] * (1 - frac) + spectrum[idx + 1] * frac
+                else:
+                    val = spectrum[idx]
+                out[i] = val
+            else:
+                # Multi-bin width (high frequencies) -> Max peak in range
+                idx_lo = int(lo)
+                idx_hi = int(hi)
+                if idx_hi > idx_lo and idx_hi < n:
+                    out[i] = spectrum[idx_lo:idx_hi].max()
+                else:
+                    out[i] = spectrum[idx_lo] if idx_lo < n else 0
+            
+            # Pink noise compensation (boost highs to look more balanced)
+            out[i] *= (1.0 + (i / self.bars) * 1.5)
 
-        return np.log1p(out)
+        # Usar escala logaritmica (dB-like) para los valores
+        return np.log1p(out * 10)
 
     def _fake_levels(self) -> np.ndarray:
         import random
         self._t += 0.2
         x = np.linspace(0, np.pi * 2, self.bars)
-        # Combine multiple sine waves and some random noise for a realistic "music" look
         wave = (np.sin(x * 3 + self._t) * 0.4 + 
                 np.cos(x * 5 - self._t * 1.5) * 0.3 + 
                 0.3)
-        # Add a bass beat effect on the left side
         beat = (np.sin(self._t * 2) ** 4) * 0.5
         for i in range(min(10, self.bars)):
             wave[i] += beat * (1.0 - i/10.0)
             
-        # Add micro-noise
         noise = np.array([random.uniform(-0.1, 0.1) for _ in range(self.bars)])
         wave = wave + noise
         return np.clip(wave, 0.02, 1.0)

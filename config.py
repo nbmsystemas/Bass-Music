@@ -75,7 +75,7 @@ EQ_PRESETS = {
 SPECTRUM_BARS = 120          # cantidad de barras a dibujar
 SPECTRUM_FPS = 20           # actualizaciones por segundo objetivo
 SAMPLE_RATE = 44100
-FFT_CHUNK = 1024            # muestras que leemos por bloque de audio
+FFT_CHUNK = 2048            # muestras que leemos por bloque de audio
 
 # Extensiones de audio que reconocemos al escanear una carpeta local
 AUDIO_EXTS = {".mp3", ".flac", ".wav", ".ogg", ".m4a", ".opus", ".aac", ".wma"}
