@@ -110,12 +110,15 @@ class Player:
         self.repeat_mode = self.REPEAT_OFF
         self._lock = threading.Lock()
         self._pending_eof = False
+        self._started = False
 
         # Cargar bandas del ecualizador desde el estado guardado
         self.eq_gains = state.get("eq_gains", [0] * len(EQ_BANDS_HZ))
 
-        # Cuando mpv termina una pista sólo, avanzamos nosotros.
-        self.mpv.observe_property("eof-reached", self._on_eof)
+        # Cuando mpv termina una pista y queda idle, avanzamos nosotros.
+        # Usamos "core-idle" (emite True de forma confiable); "eof-reached"
+        # no emite True en esta versión de mpv/python-mpv.
+        self.mpv.observe_property("core-idle", self._on_idle)
 
     # ------------------------------------------------------------------ #
     # Manejo de playlist
@@ -156,6 +159,7 @@ class Player:
         self.index = i
         track = self.playlist[i]
         self.mpv.play(track.path)
+        self._started = True
         self.mpv.pause = False
         self._apply_eq()
 
@@ -198,10 +202,12 @@ class Player:
             return random.choice(choices)
         return (self.index + direction) % n
 
-    def _on_eof(self, name, value):
+    def _on_idle(self, name, value):
         # Called from mpv's C thread — NEVER call mpv IPC or mutate playlist here.
         # Just set a flag; the main UI loop drains it via drain_pending().
-        if value:
+        # "value" es True cuando mpv queda idle (terminó la pista). Ignoramos el
+        # idle inicial: solo cuenta si ya arrancamos a reproducir (_started).
+        if value and self._started:
             self._pending_eof = True
 
     def drain_pending(self):
