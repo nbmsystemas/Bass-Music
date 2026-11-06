@@ -34,6 +34,8 @@ KEYS = {
     "shuffle": [ord("s")],
     "repeat": [ord("r")],
     "mute": [ord("m")],
+    "generate": [ord("g")],
+    "cycle_model": [ord("G")],
     "quit": [ord("q")],
     "help": [ord("?")],
 }
@@ -79,3 +81,19 @@ FFT_CHUNK = 2048            # muestras que leemos por bloque de audio
 
 # Extensiones de audio que reconocemos al escanear una carpeta local
 AUDIO_EXTS = {".mp3", ".flac", ".wav", ".ogg", ".m4a", ".opus", ".aac", ".wma"}
+
+# ---------------------------------------------------------------------------
+# Generación de música (cloud vía OpenRouter + fallback local MusicGen)
+# ---------------------------------------------------------------------------
+# Modelos disponibles (OpenRouter). Clip es el default por ser el más barato;
+# Pro genera canciones más largas. Se cicla con la tecla G.
+MUSIC_MODELS = [
+    "google/lyria-3-clip-preview",   # clip ~30s — $0.04 (default económico)
+    "google/lyria-3-pro-preview",    # canción ~3min — $0.08
+]
+MUSIC_DEFAULT_MODEL_INDEX = 0
+
+# Nombre de la subcarpeta (dentro de la carpeta de música del usuario) donde
+# se guardan los temas generados. Si no hay carpeta de música, se usa
+# ~/.config/bass/generated.
+MUSIC_OUTPUT_DIRNAME = "Bass-Generado"
