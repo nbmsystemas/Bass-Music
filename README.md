@@ -47,6 +47,7 @@ curl -sL https://raw.githubusercontent.com/nbmsystemas/Bass-Music/main/install.s
 
 ### Maintenance Commands
 
+- **Update to the latest version:** `bass --update`
 - **Uninstall completely:** `bass --uninstall`
 
 ---
@@ -114,7 +115,7 @@ Bass picks the backend automatically:
    ```bash
    export OPENROUTER_API_KEY=sk-or-...
    ```
-   Models: `google/lyria-3-clip-preview` (~30s, $0.04) and `google/lyria-3-pro-preview` (~3min, $0.08). Generated tracks are saved under `~/Música/Bass-Generado`.
+   Models: `google/lyria-3-clip-preview` (~30s, $0.04) and `google/lyria-3-pro-preview` (~3min, $0.08). Requires OpenRouter credits (a few dollars) — each track costs $0.04–$0.08. The cloud backend needs no extra Python dependencies. Generated tracks are saved under `~/Música/Bass-Generado`.
 
 2. **Local — Meta MusicGen** (free, no API key). Optional dependencies:
    ```bash
