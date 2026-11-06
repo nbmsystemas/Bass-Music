@@ -96,4 +96,4 @@ MUSIC_DEFAULT_MODEL_INDEX = 0
 # Nombre de la subcarpeta (dentro de la carpeta de música del usuario) donde
 # se guardan los temas generados. Si no hay carpeta de música, se usa
 # ~/.config/bass/generated.
-MUSIC_OUTPUT_DIRNAME = "Bass-Generado"
+MUSIC_OUTPUT_DIRNAME = "MusicAI"

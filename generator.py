@@ -58,6 +58,15 @@ def available_backend() -> str:
     return "cloud" if api_key() else "local"
 
 
+def local_backend_available() -> bool:
+    """True si están instaladas las dependencias opcionales del backend local."""
+    import importlib.util
+    for mod in ("torch", "transformers", "scipy"):
+        if importlib.util.find_spec(mod) is None:
+            return False
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Utilidades compartidas
 # ---------------------------------------------------------------------------
@@ -210,8 +219,8 @@ class MusicGenGenerator:
             import torch
         except ImportError as e:
             raise MusicGenerationError(
-                "Backend local no disponible: instalá las dependencias opcionales — "
-                "pip install torch transformers scipy accelerate"
+                "Backend local no disponible. Poné OPENROUTER_API_KEY=sk-or-... (cloud) "
+                "o instalá: pip install torch transformers scipy accelerate"
             ) from e
 
         processor = AutoProcessor.from_pretrained(self.MODEL_ID)
