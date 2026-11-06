@@ -39,7 +39,7 @@ import os
 import config
 from player import Player, load_playlist, save_playlist
 from spectrum import SpectrumAnalyzer
-from generator import GenerationService, available_backend, output_dir
+from generator import GenerationService, available_backend, output_dir, local_backend_available
 
 
 
@@ -182,6 +182,10 @@ class BassUI:
         if not p.strip():
             return
         backend = available_backend()
+        if backend == "local" and not local_backend_available():
+            self.status_msg = ("Sin backend: exportá OPENROUTER_API_KEY (cloud) "
+                               "o instalá torch/transformers (local)")
+            return
         model = config.MUSIC_MODELS[self.music_model_index] if backend == "cloud" else None
         label = model if model else "MusicGen (local)"
         if self.generator.start(p.strip(), model=model):

@@ -189,5 +189,15 @@ class TestGenerationService(unittest.TestCase):
             self.assertIn("backend caído", result[1])
 
 
+class TestLocalBackendAvailable(unittest.TestCase):
+    def test_true_when_all_deps_present(self):
+        with mock.patch("importlib.util.find_spec", return_value=object()):
+            self.assertTrue(generator.local_backend_available())
+
+    def test_false_when_a_dep_missing(self):
+        with mock.patch("importlib.util.find_spec", return_value=None):
+            self.assertFalse(generator.local_backend_available())
+
+
 if __name__ == "__main__":
     unittest.main()
