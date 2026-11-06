@@ -39,6 +39,7 @@ import os
 import config
 from player import Player, load_playlist, save_playlist
 from spectrum import SpectrumAnalyzer
+from generator import GenerationService, available_backend
 
 
 
@@ -54,6 +55,8 @@ class BassUI:
         self.scr = stdscr
         self.player = Player()
         self.spectrum = SpectrumAnalyzer()
+        self.generator = GenerationService()
+        self.music_model_index = config.MUSIC_DEFAULT_MODEL_INDEX
 
         self.focus = "library"          # "library" | "playlist" | "eq"
         self.cursor = 0                 # fila seleccionada en playlist
@@ -172,11 +175,38 @@ class BassUI:
         return buf
 
     # ------------------------------------------------------------------ #
+    # Generación de música
+    # ------------------------------------------------------------------ #
+    def _start_generation(self):
+        p = self._prompt("Generar música (género/mood, ej: jazz, lo-fi, trap)")
+        if not p.strip():
+            return
+        backend = available_backend()
+        model = config.MUSIC_MODELS[self.music_model_index] if backend == "cloud" else None
+        label = model if model else "MusicGen (local)"
+        if self.generator.start(p.strip(), model=model):
+            self.status_msg = f"Generando '{p.strip()}' ({label})... puede tardar"
+        else:
+            self.status_msg = "Ya hay una generación en curso"
+
+    def _drain_generation(self):
+        state, payload = self.generator.poll()
+        if state == "done" and payload:
+            self._add_path(payload)
+            if self.player.playlist:
+                self.player.play_index(len(self.player.playlist) - 1)
+                self.player.repeat_mode = self.player.REPEAT_ONE
+            self.status_msg = f"♪ Tema generado (loop ON): {os.path.basename(payload)}"
+        elif state == "error" and payload:
+            self.status_msg = f"Error generando: {payload}"
+
+    # ------------------------------------------------------------------ #
     # Loop principal
     # ------------------------------------------------------------------ #
     def run(self):
         while True:
             self.player.drain_pending()
+            self._drain_generation()
             self._draw()
             ch = self.scr.getch()
             if ch == -1:
@@ -209,6 +239,11 @@ class BassUI:
             self.player.cycle_repeat()
             names = ["OFF", "ONE", "ALL"]
             self.status_msg = f"Repeat: {names[self.player.repeat_mode]}"
+        elif ch in K["generate"]:
+            self._start_generation()
+        elif ch in K["cycle_model"]:
+            self.music_model_index = (self.music_model_index + 1) % len(config.MUSIC_MODELS)
+            self.status_msg = f"Modelo música: {config.MUSIC_MODELS[self.music_model_index]}"
         elif ch == ord('v'):
             self.spec_style = (getattr(self, 'spec_style', 0) + 1) % 4
             self.status_msg = f"Visualizer: Style {self.spec_style + 1}"
@@ -264,7 +299,9 @@ class BassUI:
         elif ch in (10, 13, curses.KEY_ENTER):
             if self.lib_items and self.lib_cursor < len(self.lib_items):
                 item = self.lib_items[self.lib_cursor]
-                if item["type"] == "smart":
+                if item["type"] == "generate":
+                    self._start_generation()
+                elif item["type"] == "smart":
                     keyword = item["name"].split(" ", 1)[-1].strip().lower()
                     if keyword == "zen/chill": keyword = "zen"
                     self.filter_text = keyword
@@ -391,6 +428,7 @@ class BassUI:
     # ------------------------------------------------------------------ #
     def _update_lib_items(self):
         self.lib_items = [
+            {"type": "generate", "name": "🤖 Generar música"},
             {"type": "header", "name": "📻 Online Radio"},
             {"name": "💻 Lofi Girl (YouTube Live)", "url": "https://www.youtube.com/watch?v=jfKfPfyJRdk", "type": "radio"},
             {"name": "💻 Groove Salad (SomaFM)", "url": "https://ice1.somafm.com/groovesalad-256-mp3", "type": "radio"},
@@ -516,6 +554,7 @@ class BassUI:
                 if item["type"] == "dir" and item["name"] == "..": prefix = "📁 "
                 elif item["type"] == "dir": prefix = "📁 "
                 elif item["type"] == "file": prefix = "🎵 "
+                elif item["type"] == "generate": prefix = "✨ "
                 
                 line = f"{prefix}{item['name']}"
                 line = line[:lib_w - 1].ljust(lib_w - 1)
@@ -565,7 +604,7 @@ class BassUI:
                 pass
 
         if not rows:
-            hint = "Playlist empty — press 'a' to add a file, 'u' for a URL"
+            hint = "Playlist empty — 'a' file, 'u' URL, 'g' generar música"
             try:
                 self.scr.addstr(top, lib_w + 1, hint[: list_w - 1], curses.color_pair(config.COLOR_DIM))
             except curses.error:
@@ -643,7 +682,7 @@ class BassUI:
         muted = " (mute)" if self.player.is_muted else ""
         shuf = "ON" if self.player.shuffle_on else "OFF"
         rep = ["OFF", "ONE", "ALL"][self.player.repeat_mode]
-        line = f"{state} | Vol {vol}%{muted} | Shuffle {shuf} | Repetir {rep} | ? = ayuda"
+        line = f"{state} | Vol {vol}%{muted} | Shuffle {shuf} | Repetir {rep} | g = generar | ? = ayuda"
         try:
             self.scr.addstr(h - 1, 0, line[: w - 1], curses.color_pair(config.COLOR_DIM))
         except curses.error:
@@ -703,6 +742,7 @@ class BassUI:
             "k / j    Volumen +/-        m        Mute",
             "s        Shuffle            r        Repetir (off/una/todas)",
             "a        Agregar archivo    u        Agregar URL / stream",
+            "g        Generar música     G        Ciclar modelo (clip/pro)",
             "d        Agregar carpeta    x        Quitar de playlist",
             "/        Buscar en playlist Tab      Cambiar foco (lista/EQ)",
             "e        Mostrar/ocultar EQ 1-6      Presets de EQ (con foco EQ)",

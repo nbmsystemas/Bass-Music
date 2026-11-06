@@ -47,6 +47,7 @@ curl -sL https://raw.githubusercontent.com/nbmsystemas/Bass-Music/main/install.s
 
 ### Maintenance Commands
 
+- **Update to the latest version:** `bass --update`
 - **Uninstall completely:** `bass --uninstall`
 
 ---
@@ -86,6 +87,8 @@ bass ~/Music/MyAlbum
 | `↑` `↓` | Navigate List or Adjust EQ Band |
 | `←` `→` | Change EQ Band (when EQ is focused) |
 | `1`-`6` | Apply EQ Preset (Flat, Bass, Rock, Pop, Vocal, Electro) |
+| `g` | Generate Music (AI) |
+| `G` | Cycle Generation Model |
 | `?` | Show Help Overlay |
 | `q` | Quit Application |
 
@@ -93,6 +96,38 @@ bass ~/Music/MyAlbum
 - **Left Click** on a track to play it.
 - **Left Click** on the progress bar to seek.
 - **Scroll Wheel** to navigate the playlist or library.
+
+---
+
+## 🎹 AI Music Generation
+
+Bass can generate original background music from a text prompt (genre/mood) — handy for stream backgrounds and royalty-free-friendly content.
+
+- Press `g` (or click `✨ Generar música` in the library) and type a genre/mood, e.g. `lo-fi jazz`, `trap`, `synthwave`.
+- Press `G` to cycle the generation model.
+- The generated track is added to the playlist, plays immediately, and loops (repeat = one).
+
+### Backends
+
+Bass picks the backend automatically:
+
+1. **Cloud — Google Lyria 3 via OpenRouter** (used when configured). Set your API key:
+   ```bash
+   export OPENROUTER_API_KEY=sk-or-...
+   ```
+   Models: `google/lyria-3-clip-preview` (~30s, $0.04) and `google/lyria-3-pro-preview` (~3min, $0.08). Requires OpenRouter credits (a few dollars) — each track costs $0.04–$0.08. The cloud backend needs no extra Python dependencies. Generated tracks are saved under `~/Música/Bass-Generado`.
+
+2. **Local — Meta MusicGen** (free, no API key). Optional dependencies:
+   ```bash
+   pip install torch transformers scipy accelerate
+   ```
+   The first run downloads the model (~2GB) and is slow without a GPU.
+
+### ⚠️ Legal note
+
+- Cloud output (Lyria 3) is licensed for commercial use under Google's terms, but OpenRouter is an intermediary — review both providers' terms before monetizing.
+- Local MusicGen weights are **CC-BY-NC 4.0 (non-commercial)**; do not use them in monetized streams.
+- No AI model guarantees freedom from copyright claims. Avoid prompts that recreate a specific existing song or clone a real artist's voice; original genre/mood prompts are the safe path.
 
 ---
 
