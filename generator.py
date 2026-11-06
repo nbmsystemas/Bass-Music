@@ -210,8 +210,8 @@ class MusicGenGenerator:
             import torch
         except ImportError as e:
             raise MusicGenerationError(
-                "Backend local no disponible: instalá las dependencias opcionales — "
-                "pip install torch transformers scipy accelerate"
+                "Backend local no disponible. Poné OPENROUTER_API_KEY=sk-or-... (cloud) "
+                "o instalá: pip install torch transformers scipy accelerate"
             ) from e
 
         processor = AutoProcessor.from_pretrained(self.MODEL_ID)

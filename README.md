@@ -106,6 +106,7 @@ Bass can generate original background music from a text prompt (genre/mood) — 
 - Press `g` (or click `✨ Generar música` in the library) and type a genre/mood, e.g. `lo-fi jazz`, `trap`, `synthwave`.
 - Press `G` to cycle the generation model.
 - The generated track is added to the playlist, plays immediately, and loops (repeat = one).
+- Generated tracks are saved locally under `~/Música/MusicAI/` (shortcut `🎼 Mis temas generados` in the library) and are never deleted.
 
 ### Backends
 
@@ -115,7 +116,7 @@ Bass picks the backend automatically:
    ```bash
    export OPENROUTER_API_KEY=sk-or-...
    ```
-   Models: `google/lyria-3-clip-preview` (~30s, $0.04) and `google/lyria-3-pro-preview` (~3min, $0.08). Requires OpenRouter credits (a few dollars) — each track costs $0.04–$0.08. The cloud backend needs no extra Python dependencies. Generated tracks are saved under `~/Música/Bass-Generado`.
+   Models: `google/lyria-3-clip-preview` (~30s, $0.04) and `google/lyria-3-pro-preview` (~3min, $0.08). Requires OpenRouter credits (a few dollars) — each track costs $0.04–$0.08. The cloud backend needs no extra Python dependencies.
 
 2. **Local — Meta MusicGen** (free, no API key). Optional dependencies:
    ```bash

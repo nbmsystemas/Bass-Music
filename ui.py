@@ -39,7 +39,7 @@ import os
 import config
 from player import Player, load_playlist, save_playlist
 from spectrum import SpectrumAnalyzer
-from generator import GenerationService, available_backend
+from generator import GenerationService, available_backend, output_dir
 
 
 
@@ -427,8 +427,12 @@ class BassUI:
     # Helpers de datos
     # ------------------------------------------------------------------ #
     def _update_lib_items(self):
+        music_dir = output_dir()
+        music_dir.mkdir(parents=True, exist_ok=True)
         self.lib_items = [
             {"type": "generate", "name": "🤖 Generar música"},
+            {"type": "header", "name": "🎹 MusicAI"},
+            {"type": "dir", "name": "🎼 Mis temas generados", "path": str(music_dir)},
             {"type": "header", "name": "📻 Online Radio"},
             {"name": "💻 Lofi Girl (YouTube Live)", "url": "https://www.youtube.com/watch?v=jfKfPfyJRdk", "type": "radio"},
             {"name": "💻 Groove Salad (SomaFM)", "url": "https://ice1.somafm.com/groovesalad-256-mp3", "type": "radio"},
@@ -743,6 +747,8 @@ class BassUI:
             "s        Shuffle            r        Repetir (off/una/todas)",
             "a        Agregar archivo    u        Agregar URL / stream",
             "g        Generar música     G        Ciclar modelo (clip/pro)",
+            "API cloud: export OPENROUTER_API_KEY=sk-or-...",
+            "          (sin key usa MusicGen local, gratis)",
             "d        Agregar carpeta    x        Quitar de playlist",
             "/        Buscar en playlist Tab      Cambiar foco (lista/EQ)",
             "e        Mostrar/ocultar EQ 1-6      Presets de EQ (con foco EQ)",
