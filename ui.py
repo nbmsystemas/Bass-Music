@@ -24,18 +24,21 @@ import time
 
 _UI_STATE_FILE = pathlib.Path.home() / ".config" / "bass" / "ui_state.json"
 
-def save_ui_state(style: int) -> None:
+def save_ui_state(style: int, mood_tag: str | None = None) -> None:
     try:
         _UI_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        _UI_STATE_FILE.write_text(json.dumps({"spec_style": style}))
-    except:
+        data = {"spec_style": style}
+        if mood_tag:
+            data["mood_tag"] = mood_tag
+        _UI_STATE_FILE.write_text(json.dumps(data))
+    except Exception:
         pass
 
-def load_ui_state() -> int:
+def load_ui_state() -> dict:
     try:
-        return json.loads(_UI_STATE_FILE.read_text()).get("spec_style", 0)
-    except:
-        return 0
+        return json.loads(_UI_STATE_FILE.read_text())
+    except Exception:
+        return {"spec_style": 0, "mood_tag": "cyberpunk"}
 
 import config
 from player import Player, load_playlist, save_playlist
@@ -92,10 +95,12 @@ class BassUI:
         self.spectrum = SpectrumAnalyzer()
         self.generator = GenerationService()
         self.mood_manager = MoodManager()
-        default_mood = resolve_mood("cyberpunk")
-        self.mood_manager.set_mood(default_mood)
-        if "eq" in default_mood and default_mood["eq"] in config.EQ_PRESETS:
-            self.player.apply_preset(config.EQ_PRESETS[default_mood["eq"]])
+        ui_state = load_ui_state()
+        self.spec_style = ui_state.get("spec_style", 0)
+        saved_mood = resolve_mood(ui_state.get("mood_tag", "cyberpunk"))
+        self.mood_manager.set_mood(saved_mood)
+        if "eq" in saved_mood and saved_mood["eq"] in config.EQ_PRESETS:
+            self.player.apply_preset(config.EQ_PRESETS[saved_mood["eq"]])
         self.music_model_index = config.MUSIC_DEFAULT_MODEL_INDEX
 
         self.focus = "library"          # "library" | "playlist" | "eq"
@@ -103,7 +108,6 @@ class BassUI:
         self.eq_band = 0                # banda seleccionada en el EQ
         self.show_eq = True
         self.show_help = False
-        self.spec_style = load_ui_state()
         self.filter_text = ""
         self._scroll = 0  # top-of-viewport index into visible rows
 
@@ -131,10 +135,66 @@ class BassUI:
             self._add_path(p)
 
         self._setup_curses()
+        self._show_intro_animation()
 
     # ------------------------------------------------------------------ #
     # Setup
     # ------------------------------------------------------------------ #
+    def _show_intro_animation(self):
+        """Presentación animada moderna de BASS-Music al iniciar."""
+        h, w = self.scr.getmaxyx()
+        if h < 18 or w < 60:
+            return
+
+        logo = [
+            r"██████╗  █████╗ ███████╗███████╗    ███╗   ███╗██╗   ██╗███████╗██╗ ██████╗",
+            r"██╔══██╗██╔══██╗██╔════╝██╔════╝    ████╗ ████║██║   ██║██╔════╝██║██╔════╝",
+            r"██████╔╝███████║███████╗███████╗    ██╔████╔██║██║   ██║███████╗██║██║     ",
+            r"██╔══██╗██╔══██║╚════██║╚════██║    ██║╚██╔╝██║██║   ██║╚════██║██║██║     ",
+            r"██████╔╝██║  ██║███████║███████║    ██║ ╚═╝ ██║╚██████╔╝███████║██║╚██████╗",
+            r"╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝    ╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═╝ ╚═════╝",
+        ]
+        sub = f"───  G E N T L E M A N   S T R E A M   E D I T I O N   {config.VERSION}  ───"
+
+        self.scr.nodelay(True)
+        total_steps = 14
+
+        for step in range(total_steps):
+            if self.scr.getch() != -1:
+                break
+
+            self.scr.erase()
+            cur_h, cur_w = self.scr.getmaxyx()
+            start_y = max(1, (cur_h - len(logo) - 6) // 2)
+
+            color = config.COLOR_PLAYING if step % 2 == 0 else config.COLOR_PROGRESS
+            for idx, line in enumerate(logo):
+                x = max(0, (cur_w - len(line)) // 2)
+                try:
+                    self.scr.addstr(start_y + idx, x, line[:cur_w - 1], curses.color_pair(color) | curses.A_BOLD)
+                except curses.error:
+                    pass
+
+            try:
+                sub_x = max(0, (cur_w - len(sub)) // 2)
+                self.scr.addstr(start_y + len(logo) + 1, sub_x, sub[:cur_w - 1], curses.color_pair(config.COLOR_DIM))
+            except curses.error:
+                pass
+
+            bar_len = 36
+            filled = int((step + 1) / total_steps * bar_len)
+            pct = int((step + 1) / total_steps * 100)
+            charge_bar = "━" * filled + "─" * (bar_len - filled)
+            status_text = f"Initializing Audio Engine · [{charge_bar}] {pct}%"
+            try:
+                status_x = max(0, (cur_w - len(status_text)) // 2)
+                self.scr.addstr(start_y + len(logo) + 3, status_x, status_text[:cur_w - 1], curses.color_pair(config.COLOR_HEADER))
+            except curses.error:
+                pass
+
+            self.scr.refresh()
+            time.sleep(0.04)
+
     def _setup_curses(self):
         curses.curs_set(0)
         self.scr.nodelay(True)
@@ -251,7 +311,7 @@ class BassUI:
         self.mood_manager.set_mood(mood_dict)
         self._apply_palette(mood_dict.get("colors", {}))
         self.spec_style = mood_dict.get("spec_style", 0)
-        save_ui_state(self.spec_style)
+        save_ui_state(self.spec_style, mood_dict.get("tag", "cyberpunk"))
         eq_name = mood_dict.get("eq")
         if eq_name and eq_name in config.EQ_PRESETS:
             self.player.apply_preset(config.EQ_PRESETS[eq_name])
@@ -261,7 +321,7 @@ class BassUI:
     def _select_mood(self):
         presets = list_mood_presets()
         opts = " ".join(f"[{i+1}]{p['name'].split(' ', 1)[-1]}" for i, p in enumerate(presets))
-        val = self._prompt(f"Elegí Mood: {opts} o escribí tu vibra")
+        val = self._prompt(f"Moods 1-10: {opts} o tu texto")
         if not val or not val.strip():
             return
         clean = val.strip()
@@ -832,31 +892,44 @@ class BassUI:
 
     def _draw_spectrum(self, h, w, lib_w):
         levels = self.spectrum.update()
+
+        # Si hay un tema en reproducción y sounddevice no captura audio (pactl / monitor silencioso),
+        # usamos las ondas dinámicas para que el espectro NUNCA quede congelado mientras suena música.
+        is_playing = (self.player.index >= 0 and not self.player.is_paused)
+        if is_playing:
+            try:
+                max_l = float(levels.max()) if hasattr(levels, 'max') else max(levels)
+            except Exception:
+                max_l = 0.0
+            if max_l < 0.02:
+                levels = self.spectrum._fake_levels()
+        elif self.player.is_paused:
+            levels = [0.0] * min(len(levels), w - 2)
+
         spec_h = 4
         start_y = h - 7
         avail_w = w - 2
         n = min(len(levels), avail_w)
         offset_x = max(0, (w - n) // 2)
-        
+
         style = getattr(self, 'spec_style', 0)
-        
+
         if style == 0:
             chars = " ▂▃▄▅▆▇█"  # 1. Classic Blocks
-            c_low, c_mid, c_hi = config.COLOR_BAR_LOW, config.COLOR_BAR_MID, config.COLOR_BAR_HIGH
         elif style == 1:
             chars = "░▒▓█"      # 2. Digital Shadow
-            c_low, c_mid, c_hi = config.COLOR_HEADER, config.COLOR_HEADER, config.COLOR_HEADER
         elif style == 2:
-            chars = "-+*#"      # 3. Pure ASCII (100% compatible)
-            c_low, c_mid, c_hi = config.COLOR_PLAYING, config.COLOR_PLAYING, config.COLOR_PLAYING
+            chars = "-+*#"      # 3. Pure ASCII
         else:
             chars = "·:│┃"      # 4. Matrix Lines
-            c_low, c_mid, c_hi = config.COLOR_EQ_ACTIVE, config.COLOR_EQ_ACTIVE, config.COLOR_EQ_ACTIVE
-            
-        title = f" L I V E   S P E C T R U M  (v = style {style+1}/4) " if self.spectrum.live else " ( S I M U L A T E D ) "
+
+        # Todos los estilos usan la paleta de degradado reactivo (Magenta -> Cyan -> White)
+        c_low, c_mid, c_hi = config.COLOR_BAR_LOW, config.COLOR_BAR_MID, config.COLOR_BAR_HIGH
+
+        title = f" L I V E   S P E C T R U M  (v = style {style+1}/4) " if (self.spectrum.live and is_playing) else f" 🎧  B A S S   S P E C T R U M  (v = style {style+1}/4) "
         try:
             self.scr.addstr(start_y - 1, max(0, (w - len(title)) // 2), title, curses.color_pair(config.COLOR_DIM))
-        except:
+        except Exception:
             pass
 
         for i in range(n):
@@ -865,14 +938,14 @@ class BassUI:
             if v < 0.4: color = c_low
             elif v < 0.7: color = c_mid
             else: color = c_hi
-            
+
             for row in range(spec_h):
                 y = start_y + (spec_h - 1 - row)
                 cell_v = val - row
                 if cell_v >= 1.0: c = chars[-1]
                 elif cell_v > 0.0: c = chars[int(cell_v * (len(chars) - 1))]
                 else: c = " "
-                
+
                 try:
                     self.scr.addstr(y, offset_x + i, c, curses.color_pair(color))
                 except curses.error:
@@ -903,11 +976,13 @@ class BassUI:
             pass
 
     def _draw_footer(self, h, w):
-        shortcuts = " [Space] Pausa | [M] Mood | [S] Stream IA | [g] Generar | [K] Key | [e] EQ | [a/u] Agregar | [?] Ayuda | [q] Salir"
-        if w < 105:
-            shortcuts = " [Space] Pausa | [M] Mood | [S] Stream | [g] IA | [K] Key | [e] EQ | [?] Ayuda | [q] Salir"
-        if w < 85:
-            shortcuts = " [Space] Pausa | [M] Mood | [S] Stream | [g] IA | [?] Ayuda | [q] Salir"
+        shortcuts = " [Space] Pausa | [M] Mood | [v] Espectro | [S] Stream IA | [g] Generar | [K] Key | [e] EQ | [a/u] Agregar | [?] Ayuda | [q] Salir"
+        if w < 118:
+            shortcuts = " [Space] Pausa | [M] Mood | [v] Espectro | [S] Stream | [g] IA | [K] Key | [e] EQ | [?] Ayuda | [q] Salir"
+        if w < 98:
+            shortcuts = " [Space] Pausa | [M] Mood | [v] Espectro | [S] Stream | [g] IA | [?] Ayuda | [q] Salir"
+        if w < 78:
+            shortcuts = " [Space] Pausa | [M] Mood | [v] Espectro | [?] Ayuda | [q] Salir"
 
         try:
             self.scr.addstr(h - 1, 0, shortcuts[: w - 1].ljust(w - 1), curses.color_pair(config.COLOR_HEADER))

@@ -201,4 +201,68 @@ MOOD_PRESETS = {
             "bar_high": "cyan",
         },
     },
+    "dracula": {
+        "name": "🧛 Dracula",
+        "tag": "dracula",
+        "prompt": "gothic dark synthwave purple ambient nocturnal mystery bass",
+        "eq": "Rock",
+        "spec_style": 0,  # Classic Blocks
+        "radio": "DEF CON (SomaFM)",
+        "colors": {
+            "header": "magenta",
+            "selected": "cyan",
+            "playing": "green",
+            "bar_low": "magenta",
+            "bar_mid": "cyan",
+            "bar_high": "green",
+        },
+    },
+    "tokyonight": {
+        "name": "🌸 Tokyo Night",
+        "tag": "tokyonight",
+        "prompt": "tokyo night lo-fi chill city lights rain neon ambient keys",
+        "eq": "Vocal",
+        "spec_style": 1,  # Digital Shadow
+        "radio": "Lofi Girl (YouTube Live)",
+        "colors": {
+            "header": "blue",
+            "selected": "magenta",
+            "playing": "cyan",
+            "bar_low": "blue",
+            "bar_mid": "magenta",
+            "bar_high": "cyan",
+        },
+    },
+    "nord": {
+        "name": "❄️ Nord Frost",
+        "tag": "nord",
+        "prompt": "nordic ambient cold glacier deep space calm soundscape drone",
+        "eq": "Flat",
+        "spec_style": 0,  # Classic Blocks
+        "radio": "Deep Space One (Soma)",
+        "colors": {
+            "header": "cyan",
+            "selected": "white",
+            "playing": "cyan",
+            "bar_low": "blue",
+            "bar_mid": "cyan",
+            "bar_high": "white",
+        },
+    },
+    "gruvbox": {
+        "name": "🍂 Gruvbox Warm",
+        "tag": "gruvbox",
+        "prompt": "warm analog acoustic guitar folk mellow vinyl organic chords",
+        "eq": "Flat",
+        "spec_style": 0,  # Classic Blocks
+        "radio": "Groove Salad (SomaFM)",
+        "colors": {
+            "header": "yellow",
+            "selected": "red",
+            "playing": "green",
+            "bar_low": "yellow",
+            "bar_mid": "red",
+            "bar_high": "green",
+        },
+    },
 }

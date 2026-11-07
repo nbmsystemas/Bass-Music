@@ -49,6 +49,12 @@ class TestMoodResolution(unittest.TestCase):
         m = mood.resolve_mood("guitarra pesada y riffs con energia")
         self.assertEqual(m["tag"], "rock")
 
+    def test_resolve_mood_new_themes(self):
+        for name in ("dracula", "tokyonight", "nord", "gruvbox"):
+            m = mood.resolve_mood(name)
+            self.assertEqual(m["tag"], name)
+            self.assertIn("colors", m)
+
     def test_resolve_mood_custom_prompt_fallback(self):
         m = mood.resolve_mood("polka intergalactica espacial")
         self.assertEqual(m["tag"], "custom")

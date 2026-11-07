@@ -45,6 +45,10 @@ def resolve_mood(query: str) -> dict:
         (["synthwave", "80s", "retro", "outrun", "arcade", "drive", "disco", "electro"], "synthwave"),
         (["rock", "metal", "guitarra", "pesado", "riff", "energia", "energía", "fuego"], "rock"),
         (["trap", "drill", "sub bass", "808", "urbano", "rap", "hip hop", "calle"], "trap"),
+        (["dracula", "gothic", "vampiro", "morado", "purple"], "dracula"),
+        (["tokyo", "tokyonight", "tokyo night", "anime", "japon", "japan"], "tokyonight"),
+        (["nord", "nordic", "frost", "hielo", "nieve", "cold", "polar", "glaciar"], "nord"),
+        (["gruvbox", "warm", "vintage", "analog", "marron", "calido", "madera"], "gruvbox"),
     ]
 
     for words, target_key in keywords_map:
