@@ -27,6 +27,8 @@ class FakeMPV:
 
     def play(self, path):
         self.played.append(path)
+        if hasattr(self, "_on") and self._on and self._on[0] == "core-idle":
+            self._on[1]("core-idle", False)
 
     def terminate(self):
         pass
@@ -54,6 +56,25 @@ class TestPlayerAdvance(unittest.TestCase):
         p.add("a.mp3")  # index pasa a 0, pero aún no se reprodujo nada
         p._on_idle("core-idle", True)
         self.assertFalse(p._pending_eof)
+
+    def test_loading_idle_ignored_until_playback_starts(self):
+        p = make_player()
+        p.add("a.mp3")
+        p.add("b.mp3")
+        # play_index resetea _started a False
+        p.index = 0
+        p._started = False
+        p._pending_eof = False
+        # mpv emite core-idle=True mientras abre el archivo
+        p._on_idle("core-idle", True)
+        self.assertFalse(p._pending_eof)
+        self.assertFalse(p._started)
+        # luego mpv empieza a reproducir y emite False
+        p._on_idle("core-idle", False)
+        self.assertTrue(p._started)
+        # finalmente al terminar la pista emite True
+        p._on_idle("core-idle", True)
+        self.assertTrue(p._pending_eof)
 
     def test_repeat_one_loops(self):
         p = make_player()

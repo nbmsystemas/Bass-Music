@@ -213,8 +213,11 @@ class BassUI:
         if state == "done" and payload:
             self._add_path(payload)
             if self.player.playlist:
-                self.player.play_index(len(self.player.playlist) - 1)
+                new_idx = len(self.player.playlist) - 1
+                self.player.play_index(new_idx)
                 self.player.repeat_mode = self.player.REPEAT_ONE
+                self.cursor = new_idx
+                self.focus = "playlist"
             self.status_msg = f"♪ Tema generado (loop ON): {os.path.basename(payload)}"
         elif state == "error" and payload:
             self.status_msg = f"Error generando: {payload}"

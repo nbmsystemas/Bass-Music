@@ -158,8 +158,9 @@ class Player:
             return
         self.index = i
         track = self.playlist[i]
+        self._started = False
+        self._pending_eof = False
         self.mpv.play(track.path)
-        self._started = True
         self.mpv.pause = False
         self._apply_eq()
 
@@ -207,12 +208,15 @@ class Player:
     def _on_idle(self, name, value):
         # Called from mpv's C thread — NEVER call mpv IPC or mutate playlist here.
         # Just set a flag; the main UI loop drains it via drain_pending().
-        # "value" es True cuando mpv queda idle (terminó la pista). Ignoramos el
-        # idle inicial: solo cuenta si ya arrancamos a reproducir (_started).
-        # mpv también entra en core-idle cuando está en pausa, por lo que si
-        # is_paused es True, NO es fin de pista (EOF).
-        if value and self._started and not self.is_paused:
+        # "value" es False cuando mpv empieza a reproducir audio (sale de idle).
+        # "value" es True cuando mpv queda idle (al cargar, al pausar o al terminar pista).
+        # Solo consideramos EOF si ya estaba reproduciendo (_started), no está en pausa
+        # y mpv pasa a True (fin de pista).
+        if not value:
+            self._started = True
+        elif value and self._started and not self.is_paused:
             self._pending_eof = True
+            self._started = False
 
     def drain_pending(self):
         """Call this from the main UI loop to process deferred EOF events."""
