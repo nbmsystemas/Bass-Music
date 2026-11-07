@@ -19,6 +19,7 @@ import curses
 import json
 import os
 import pathlib
+import re
 import time
 
 _UI_STATE_FILE = pathlib.Path.home() / ".config" / "bass" / "ui_state.json"
@@ -44,6 +45,39 @@ from mood import MoodManager, resolve_mood, list_mood_presets
 
 
 
+def _clean_track_title(title: str) -> str:
+    t = (title or "").strip()
+    if not t:
+        return "Pista sin título"
+    if "youtube.com/watch" in t and "v=" in t:
+        vid = t.split("v=")[1].split("&")[0]
+        return f"📺 YouTube ({vid})"
+    if "youtu.be/" in t:
+        vid = t.split("youtu.be/")[1].split("?")[0]
+        return f"📺 YouTube ({vid})"
+    if "somafm.com" in t:
+        station = t.split("/")[-1].split("-")[0].replace("mp3", "")
+        return f"📻 SomaFM · {station.capitalize() or 'Radio'}"
+    if "nightride.fm" in t:
+        return "📻 Nightride FM · Synthwave"
+    if "radioparadise.com" in t:
+        return "📻 Radio Paradise · Rock"
+    if "bbc_radio" in t or "bbc.co" in t:
+        return "📻 BBC Radio 3 · Clásica"
+    if "ClassicFM" in t:
+        return "📻 Classic FM"
+    if "spotify.com" in t:
+        return "🎧 Spotify Stream"
+    if t.startswith(("http://", "https://")):
+        domain = t.split("//", 1)[-1].split("/")[0]
+        return f"🌐 Stream: {domain}"
+    m = re.match(r"^([a-zA-Z0-9_-]+)-\d{8}-\d{6}\.(mp3|wav|flac|ogg)$", t)
+    if m:
+        name = m.group(1).replace("-", " ").title()
+        return f"✨ {name} [AI]"
+    return t
+
+
 def _fmt_time(seconds: float) -> str:
     seconds = max(0, int(seconds))
     m, s = divmod(seconds, 60)
@@ -58,6 +92,10 @@ class BassUI:
         self.spectrum = SpectrumAnalyzer()
         self.generator = GenerationService()
         self.mood_manager = MoodManager()
+        default_mood = resolve_mood("cyberpunk")
+        self.mood_manager.set_mood(default_mood)
+        if "eq" in default_mood and default_mood["eq"] in config.EQ_PRESETS:
+            self.player.apply_preset(config.EQ_PRESETS[default_mood["eq"]])
         self.music_model_index = config.MUSIC_DEFAULT_MODEL_INDEX
 
         self.focus = "library"          # "library" | "playlist" | "eq"
@@ -107,18 +145,19 @@ class BassUI:
         except Exception:
             pass
 
+        # Paleta Gentleman / Synthwave por defecto (Rose, Magenta, Cyan, Violeta)
         curses.start_color()
         curses.use_default_colors()
         curses.init_pair(config.COLOR_DEFAULT, curses.COLOR_WHITE, -1)
-        curses.init_pair(config.COLOR_HEADER, curses.COLOR_BLACK, curses.COLOR_CYAN)
-        curses.init_pair(config.COLOR_SELECTED, curses.COLOR_BLACK, curses.COLOR_WHITE)
-        curses.init_pair(config.COLOR_PLAYING, curses.COLOR_GREEN, -1)
-        curses.init_pair(config.COLOR_BAR_LOW, curses.COLOR_GREEN, -1)
-        curses.init_pair(config.COLOR_BAR_MID, curses.COLOR_YELLOW, -1)
-        curses.init_pair(config.COLOR_BAR_HIGH, curses.COLOR_RED, -1)
-        curses.init_pair(config.COLOR_EQ_ACTIVE, curses.COLOR_BLACK, curses.COLOR_CYAN)
-        curses.init_pair(config.COLOR_DIM, curses.COLOR_WHITE, -1)
-        curses.init_pair(config.COLOR_PROGRESS, curses.COLOR_CYAN, -1)
+        curses.init_pair(config.COLOR_HEADER, curses.COLOR_BLACK, curses.COLOR_MAGENTA)
+        curses.init_pair(config.COLOR_SELECTED, curses.COLOR_BLACK, curses.COLOR_CYAN)
+        curses.init_pair(config.COLOR_PLAYING, curses.COLOR_MAGENTA, -1)
+        curses.init_pair(config.COLOR_BAR_LOW, curses.COLOR_MAGENTA, -1)
+        curses.init_pair(config.COLOR_BAR_MID, curses.COLOR_CYAN, -1)
+        curses.init_pair(config.COLOR_BAR_HIGH, curses.COLOR_WHITE, -1)
+        curses.init_pair(config.COLOR_EQ_ACTIVE, curses.COLOR_BLACK, curses.COLOR_MAGENTA)
+        curses.init_pair(config.COLOR_DIM, curses.COLOR_CYAN, -1)
+        curses.init_pair(config.COLOR_PROGRESS, curses.COLOR_MAGENTA, -1)
 
     # ------------------------------------------------------------------ #
     # Manejo de archivos / playlist
@@ -397,7 +436,7 @@ class BassUI:
 
     def _handle_key_library(self, ch):
         h, w = self.scr.getmaxyx()
-        visible_h = max(1, h - 11)
+        visible_h = max(1, h - 12)
         if ch in (curses.KEY_UP,):
             self.lib_cursor = max(0, self.lib_cursor - 1)
             while self.lib_cursor > 0 and self.lib_items and self.lib_items[self.lib_cursor]["type"] == "header":
@@ -449,7 +488,7 @@ class BassUI:
     def _handle_key_playlist(self, ch):
         rows = self._visible_rows()
         h, w = self.scr.getmaxyx()
-        visible_h = max(1, h - 11)  # matches playlist top/bottom (top=2, bottom=h-9)
+        visible_h = max(1, h - 12)  # matches playlist top/bottom (top=3, bottom=h-9)
         if ch in (curses.KEY_UP,):
             self.cursor = max(0, self.cursor - 1)
             if self.cursor < self._scroll:
@@ -521,7 +560,7 @@ class BassUI:
         if bstate & (getattr(curses, "BUTTON5_PRESSED", 0) | getattr(curses, "BUTTON5_CLICKED", 0)):
             if mx < lib_w:
                 self.focus = "library"
-                visible_h = max(1, h - 11)
+                visible_h = max(1, h - 12)
                 max_c = max(0, len(self.lib_items) - 1)
                 self.lib_cursor = min(max_c, self.lib_cursor + 1)
                 while self.lib_cursor < max_c and self.lib_items and self.lib_items[self.lib_cursor]["type"] == "header":
@@ -531,7 +570,7 @@ class BassUI:
             else:
                 self.focus = "playlist"
                 rows = self._visible_rows()
-                visible_h = max(1, h - 11)
+                visible_h = max(1, h - 12)
                 self.cursor = min(max(0, len(rows) - 1), self.cursor + 1)
                 if self.cursor >= self._scroll + visible_h:
                     self._scroll = self.cursor - visible_h + 1
@@ -545,7 +584,7 @@ class BassUI:
                 return False
             self._last_click_time = now
 
-            playlist_top, playlist_bottom = 2, h - 9
+            playlist_top, playlist_bottom = 3, h - 9
             progress_row = h - 3
 
             if my == progress_row:
@@ -668,27 +707,34 @@ class BassUI:
         self.scr.refresh()
 
     def _draw_header(self, w):
-        mood_tag = self.mood_manager.get_status_tag()
-        if mood_tag:
-            title = f" BASS -- {mood_tag} "
-        else:
-            title = " BASS -- terminal music player "
-        self.scr.attron(curses.color_pair(config.COLOR_HEADER))
+        mood = self.mood_manager.active_mood
+        mood_name = mood.get("name", "Cyberpunk Night") if mood else "Cyberpunk Night"
+        stream_st = "ON" if self.mood_manager.stream_active else "OFF"
+        title = f" 🎧 BASS MUSIC  │  {mood_name}  │  AI Stream: {stream_st}  │  {config.VERSION} "
+        self.scr.attron(curses.color_pair(config.COLOR_HEADER) | curses.A_BOLD)
         try:
-            self.scr.addstr(0, 0, title.ljust(w)[:w])
+            self.scr.addstr(0, 0, title.center(w)[:w])
         except curses.error:
             pass
-        self.scr.attroff(curses.color_pair(config.COLOR_HEADER))
+        self.scr.attroff(curses.color_pair(config.COLOR_HEADER) | curses.A_BOLD)
+
         status = self.status_msg
         if self.filter_text:
             status = f"[Filter: '{self.filter_text}'] {status}"
+        status_line = f"  ● {status}"
         try:
-            self.scr.addstr(1, 0, status[: w - 1].ljust(w - 1), curses.color_pair(config.COLOR_DIM))
+            self.scr.addstr(1, 0, status_line[: w - 1].ljust(w - 1), curses.color_pair(config.COLOR_DIM))
         except curses.error:
             pass
 
     def _draw_library(self, h, w, lib_w):
-        top, bottom = 2, h - 9
+        hdr = "╭─ 📁 LIBRARY " + "─" * max(0, lib_w - 15) + "╮"
+        try:
+            self.scr.addstr(2, 0, hdr[:lib_w], curses.color_pair(config.COLOR_DIM))
+        except curses.error:
+            pass
+
+        top, bottom = 3, h - 9
         visible_h = max(1, bottom - top)
         
         # separator
@@ -735,12 +781,19 @@ class BassUI:
                 pass
 
     def _draw_playlist(self, h, w, lib_w):
-        top, bottom = 2, h - 9  # row 1 is reserved for status_msg in _draw_header
         eq_width = 34 if self.show_eq else 0
         list_w = max(10, w - lib_w - eq_width - 2)
+        rows = self._visible_rows()
+
+        hdr = f"╭─ 🎵 PLAYLIST [{len(rows)}] " + "─" * max(0, list_w - 20) + "╮"
+        try:
+            self.scr.addstr(2, lib_w + 1, hdr[:list_w], curses.color_pair(config.COLOR_DIM))
+        except curses.error:
+            pass
+
+        top, bottom = 3, h - 9
         visible_h = max(1, bottom - top)
 
-        rows = self._visible_rows()
         # Clamp scroll
         self._scroll = max(0, min(self._scroll, max(0, len(rows) - visible_h)))
         # Clamp cursor
@@ -755,7 +808,8 @@ class BassUI:
                 continue
             real_i, track = rows[data_i]
             marker = "▶ " if real_i == cur_i else "  "
-            line = f"{marker}{real_i + 1:>3}. {track.title}"
+            display_title = _clean_track_title(track.title)
+            line = f"{marker}{real_i + 1:>3}. {display_title}"
             line = line[: list_w - 1].ljust(list_w - 1)
 
             attr = curses.color_pair(config.COLOR_DEFAULT)
@@ -866,13 +920,14 @@ class BassUI:
         if x0 < 20:
             return
         gains = self.player.eq_gains
-        top = 2
-        header = " EQUALIZER (Tab to focus) "
+
+        header = "╭─ 🎚️ EQUALIZER (Tab) ───────╮"
         try:
-            self.scr.addstr(top, x0, header[: eq_width], curses.A_BOLD)
+            self.scr.addstr(2, x0, header[: eq_width], curses.color_pair(config.COLOR_DIM))
         except curses.error:
             pass
 
+        top = 3
         bar_area_h = 10
         for bi, (freq, gain) in enumerate(zip(config.EQ_BANDS_HZ, gains)):
             col = x0 + 1 + bi * 3
