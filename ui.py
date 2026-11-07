@@ -891,20 +891,21 @@ class BassUI:
                 pass
 
     def _draw_spectrum(self, h, w, lib_w):
-        levels = self.spectrum.update()
+        is_playing = self.player.is_playing
 
-        # Si hay un tema en reproducción y sounddevice no captura audio (pactl / monitor silencioso),
-        # usamos las ondas dinámicas para que el espectro NUNCA quede congelado mientras suena música.
-        is_playing = (self.player.index >= 0 and not self.player.is_paused)
-        if is_playing:
+        if not is_playing:
+            # Si NO hay música reproduciéndose, barras totalmente en cero (quietas)
+            levels = [0.0] * min(self.spectrum.bars, max(1, w - 2))
+        else:
+            levels = self.spectrum.update()
+            # Si hay un tema en reproducción y sounddevice no captura audio (pactl / monitor silencioso),
+            # usamos las ondas dinámicas para que el espectro NUNCA quede congelado mientras suena música.
             try:
                 max_l = float(levels.max()) if hasattr(levels, 'max') else max(levels)
             except Exception:
                 max_l = 0.0
             if max_l < 0.02:
                 levels = self.spectrum._fake_levels()
-        elif self.player.is_paused:
-            levels = [0.0] * min(len(levels), w - 2)
 
         spec_h = 4
         start_y = h - 7

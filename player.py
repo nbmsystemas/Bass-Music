@@ -184,6 +184,15 @@ class Player:
         except Exception:
             return True
 
+    @property
+    def is_playing(self) -> bool:
+        try:
+            if not self._started or self.is_paused:
+                return False
+            return self.mpv.time_pos is not None
+        except Exception:
+            return False
+
     def next(self):
         with self._lock:
             if not self.playlist:

@@ -30,27 +30,6 @@ from ui import BassUI
 
 
 
-import time
-
-def show_splash():
-    splash = r"""
-     ____    _    ____  ____  
-    | __ )  / \  / ___|/ ___| 
-    |  _ \ / _ \ \___ \\___ \ 
-    | |_) / ___ \ ___) |___) |
-    |____/_/   \_\____/|____/ 
-                              
-      ♪ Terminal Music Player ♪
-    """
-    sys.stdout.write("\033[2J\033[H") # Clear screen
-    sys.stdout.write("\033[36m") # Cyan color
-    for line in splash.split("\n"):
-        sys.stdout.write(line + "\n")
-        sys.stdout.flush()
-        time.sleep(0.05)
-    sys.stdout.write("\033[0m")
-    time.sleep(0.8)
-
 def main():
     parser = argparse.ArgumentParser(
         prog="bass",
@@ -69,9 +48,6 @@ def main():
             ui.run()
         finally:
             ui.shutdown()
-
-    if not args.paths:
-        show_splash()
 
     try:
         curses.wrapper(_run)
