@@ -36,6 +36,7 @@ KEYS = {
     "mute": [ord("m")],
     "generate": [ord("g")],
     "cycle_model": [ord("G")],
+    "api_key": [ord("K")],
     "quit": [ord("q")],
     "help": [ord("?")],
 }

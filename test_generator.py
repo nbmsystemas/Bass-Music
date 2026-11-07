@@ -52,7 +52,8 @@ class TestBackendSelection(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=False):
             os.environ.pop("OPENROUTER_API_KEY", None)
             os.environ.pop("OPENROUTER_KEY", None)
-            self.assertEqual(generator.available_backend(), "local")
+            with mock.patch("generator.pathlib.Path.is_file", return_value=False):
+                self.assertEqual(generator.available_backend(), "local")
 
     def test_available_backend_with_key(self):
         with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-test"}):

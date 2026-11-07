@@ -175,8 +175,23 @@ class BassUI:
         return buf
 
     # ------------------------------------------------------------------ #
-    # Generación de música
+    # Generación de música y configuración de API Key
     # ------------------------------------------------------------------ #
+    def _configure_api_key(self):
+        cur = api_key()
+        hint = f" (actual: {cur[:8]}...)" if cur else ""
+        k = self._prompt(f"Pegá tu OPENROUTER_API_KEY{hint}")
+        if k and k.strip():
+            clean = k.strip()
+            conf_dir = pathlib.Path.home() / ".config" / "bass"
+            conf_dir.mkdir(parents=True, exist_ok=True)
+            (conf_dir / "openrouter_key").write_text(clean + "\n")
+            os.environ["OPENROUTER_API_KEY"] = clean
+            self._update_lib_items()
+            self.status_msg = "✓ OPENROUTER_API_KEY guardada en ~/.config/bass/openrouter_key"
+        elif k == "":
+            self.status_msg = "Configuración de API Key cancelada"
+
     def _start_generation(self):
         p = self._prompt("Generar música (género/mood, ej: jazz, lo-fi, trap)")
         if not p.strip():
@@ -248,6 +263,8 @@ class BassUI:
         elif ch in K["cycle_model"]:
             self.music_model_index = (self.music_model_index + 1) % len(config.MUSIC_MODELS)
             self.status_msg = f"Modelo música: {config.MUSIC_MODELS[self.music_model_index]}"
+        elif ch in K.get("api_key", []):
+            self._configure_api_key()
         elif ch == ord('v'):
             self.spec_style = (getattr(self, 'spec_style', 0) + 1) % 4
             self.status_msg = f"Visualizer: Style {self.spec_style + 1}"
@@ -294,10 +311,15 @@ class BassUI:
         visible_h = max(1, h - 11)
         if ch in (curses.KEY_UP,):
             self.lib_cursor = max(0, self.lib_cursor - 1)
+            while self.lib_cursor > 0 and self.lib_items and self.lib_items[self.lib_cursor]["type"] == "header":
+                self.lib_cursor -= 1
             if self.lib_cursor < self.lib_scroll:
                 self.lib_scroll = self.lib_cursor
         elif ch in (curses.KEY_DOWN,):
-            self.lib_cursor = min(max(0, len(self.lib_items) - 1), self.lib_cursor + 1)
+            max_c = max(0, len(self.lib_items) - 1)
+            self.lib_cursor = min(max_c, self.lib_cursor + 1)
+            while self.lib_cursor < max_c and self.lib_items and self.lib_items[self.lib_cursor]["type"] == "header":
+                self.lib_cursor += 1
             if self.lib_cursor >= self.lib_scroll + visible_h:
                 self.lib_scroll = self.lib_cursor - visible_h + 1
         elif ch in (10, 13, curses.KEY_ENTER):
@@ -305,6 +327,8 @@ class BassUI:
                 item = self.lib_items[self.lib_cursor]
                 if item["type"] == "generate":
                     self._start_generation()
+                elif item["type"] == "api_key":
+                    self._configure_api_key()
                 elif item["type"] == "smart":
                     keyword = item["name"].split(" ", 1)[-1].strip().lower()
                     if keyword == "zen/chill": keyword = "zen"
@@ -319,10 +343,15 @@ class BassUI:
                 elif item["type"] == "dir":
                     self.lib_path = item["path"]
                     self._update_lib_items()
-                    self.lib_cursor = 1
+                    self.lib_cursor = 0
                     self.lib_scroll = 0
                 elif item["type"] == "file":
                     self._add_path(item["path"])
+                    if self.player.playlist:
+                        new_idx = len(self.player.playlist) - 1
+                        self.player.play_index(new_idx)
+                        self.focus = "playlist"
+                        self.cursor = new_idx
 
     def _handle_key_playlist(self, ch):
         rows = self._visible_rows()
@@ -379,28 +408,50 @@ class BassUI:
         h, w = self.scr.getmaxyx()
         lib_w = max(25, w // 4)
 
-        if bstate & getattr(curses, "BUTTON4_PRESSED", 0):
-            if mx < lib_w and self.focus == "library":
+        # Rueda de scroll arriba (BUTTON4)
+        if bstate & (getattr(curses, "BUTTON4_PRESSED", 0) | getattr(curses, "BUTTON4_CLICKED", 0)):
+            if mx < lib_w:
+                self.focus = "library"
                 self.lib_cursor = max(0, self.lib_cursor - 1)
-                if self.lib_cursor < self.lib_scroll: self.lib_scroll = self.lib_cursor
+                while self.lib_cursor > 0 and self.lib_items and self.lib_items[self.lib_cursor]["type"] == "header":
+                    self.lib_cursor -= 1
+                if self.lib_cursor < self.lib_scroll:
+                    self.lib_scroll = self.lib_cursor
             else:
+                self.focus = "playlist"
                 self.cursor = max(0, self.cursor - 1)
-                if self.cursor < self._scroll: self._scroll = self.cursor
+                if self.cursor < self._scroll:
+                    self._scroll = self.cursor
             return False
-            
-        if bstate & getattr(curses, "BUTTON5_PRESSED", 0):
-            if mx < lib_w and self.focus == "library":
+
+        # Rueda de scroll abajo (BUTTON5)
+        if bstate & (getattr(curses, "BUTTON5_PRESSED", 0) | getattr(curses, "BUTTON5_CLICKED", 0)):
+            if mx < lib_w:
+                self.focus = "library"
                 visible_h = max(1, h - 11)
-                self.lib_cursor = min(max(0, len(self.lib_items) - 1), self.lib_cursor + 1)
-                if self.lib_cursor >= self.lib_scroll + visible_h: self.lib_scroll = self.lib_cursor - visible_h + 1
+                max_c = max(0, len(self.lib_items) - 1)
+                self.lib_cursor = min(max_c, self.lib_cursor + 1)
+                while self.lib_cursor < max_c and self.lib_items and self.lib_items[self.lib_cursor]["type"] == "header":
+                    self.lib_cursor += 1
+                if self.lib_cursor >= self.lib_scroll + visible_h:
+                    self.lib_scroll = self.lib_cursor - visible_h + 1
             else:
+                self.focus = "playlist"
                 rows = self._visible_rows()
                 visible_h = max(1, h - 11)
                 self.cursor = min(max(0, len(rows) - 1), self.cursor + 1)
-                if self.cursor >= self._scroll + visible_h: self._scroll = self.cursor - visible_h + 1
+                if self.cursor >= self._scroll + visible_h:
+                    self._scroll = self.cursor - visible_h + 1
             return False
 
-        if bstate & (curses.BUTTON1_CLICKED | curses.BUTTON1_PRESSED) or bstate & curses.BUTTON1_DOUBLE_CLICKED:
+        # Click botón 1 (con debounce para evitar disparo doble por pressed + clicked)
+        is_click = bool(bstate & (curses.BUTTON1_CLICKED | getattr(curses, "BUTTON1_DOUBLE_CLICKED", 0) | curses.BUTTON1_PRESSED))
+        if is_click:
+            now = time.time()
+            if now - getattr(self, "_last_click_time", 0.0) < 0.25:
+                return False
+            self._last_click_time = now
+
             playlist_top, playlist_bottom = 2, h - 9
             progress_row = h - 3
 
@@ -414,14 +465,14 @@ class BassUI:
                     self.focus = "library"
                     data_i = self.lib_scroll + (my - playlist_top)
                     if 0 <= data_i < len(self.lib_items):
-                        self.lib_cursor = data_i
-                        # Trigger enter event on click!
-                        self._handle_key_library(10)
+                        if self.lib_items[data_i]["type"] != "header":
+                            self.lib_cursor = data_i
+                            self._handle_key_library(10)
                 else:
                     self.focus = "playlist"
                     data_i = self._scroll + (my - playlist_top)
                     rows = self._visible_rows()
-                    if data_i < len(rows):
+                    if 0 <= data_i < len(rows):
                         real_index = rows[data_i][0]
                         self.cursor = data_i
                         self.player.play_index(real_index)
@@ -433,8 +484,11 @@ class BassUI:
     def _update_lib_items(self):
         music_dir = output_dir()
         music_dir.mkdir(parents=True, exist_ok=True)
+        has_key = bool(api_key())
+        key_name = "API Key: Configurada ✓" if has_key else "API Key: Pegar clave..."
         self.lib_items = [
-            {"type": "generate", "name": "🤖 Generar música"},
+            {"type": "generate", "name": "Generar música (AI)"},
+            {"type": "api_key", "name": key_name},
             {"type": "header", "name": "🎹 MusicAI"},
             {"type": "dir", "name": "🎼 Mis temas generados", "path": str(music_dir)},
             {"type": "header", "name": "📻 Online Radio"},
@@ -563,6 +617,7 @@ class BassUI:
                 elif item["type"] == "dir": prefix = "📁 "
                 elif item["type"] == "file": prefix = "🎵 "
                 elif item["type"] == "generate": prefix = "✨ "
+                elif item["type"] == "api_key": prefix = "🔑 "
                 
                 line = f"{prefix}{item['name']}"
                 line = line[:lib_w - 1].ljust(lib_w - 1)
@@ -751,8 +806,8 @@ class BassUI:
             "s        Shuffle            r        Repetir (off/una/todas)",
             "a        Agregar archivo    u        Agregar URL / stream",
             "g        Generar música     G        Ciclar modelo (clip/pro)",
-            "API cloud: export OPENROUTER_API_KEY=sk-or-...",
-            "          (sin key usa MusicGen local, gratis)",
+            "K        Configurar API Key (o click en el menú izquierdo)",
+            "API: guardada en ~/.config/bass/openrouter_key o env var",
             "d        Agregar carpeta    x        Quitar de playlist",
             "/        Buscar en playlist Tab      Cambiar foco (lista/EQ)",
             "e        Mostrar/ocultar EQ 1-6      Presets de EQ (con foco EQ)",
