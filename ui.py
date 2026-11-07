@@ -40,6 +40,7 @@ import config
 from player import Player, load_playlist, save_playlist
 from spectrum import SpectrumAnalyzer
 from generator import GenerationService, available_backend, output_dir, local_backend_available, api_key
+from mood import MoodManager, resolve_mood, list_mood_presets
 
 
 
@@ -56,6 +57,7 @@ class BassUI:
         self.player = Player()
         self.spectrum = SpectrumAnalyzer()
         self.generator = GenerationService()
+        self.mood_manager = MoodManager()
         self.music_model_index = config.MUSIC_DEFAULT_MODEL_INDEX
 
         self.focus = "library"          # "library" | "playlist" | "eq"
@@ -175,8 +177,81 @@ class BassUI:
         return buf
 
     # ------------------------------------------------------------------ #
-    # Generación de música y configuración de API Key
+    # Generación de música, Mood Engine y configuración de API Key
     # ------------------------------------------------------------------ #
+    def _apply_palette(self, colors: dict):
+        if not curses.has_colors():
+            return
+        cmap = {
+            "white": curses.COLOR_WHITE,
+            "black": curses.COLOR_BLACK,
+            "cyan": curses.COLOR_CYAN,
+            "magenta": curses.COLOR_MAGENTA,
+            "blue": curses.COLOR_BLUE,
+            "green": curses.COLOR_GREEN,
+            "yellow": curses.COLOR_YELLOW,
+            "red": curses.COLOR_RED,
+        }
+        header_bg = cmap.get(colors.get("header", "cyan"), curses.COLOR_CYAN)
+        sel_bg = cmap.get(colors.get("selected", "magenta"), curses.COLOR_WHITE)
+        play_fg = cmap.get(colors.get("playing", "cyan"), curses.COLOR_GREEN)
+        bar_low = cmap.get(colors.get("bar_low", "green"), curses.COLOR_GREEN)
+        bar_mid = cmap.get(colors.get("bar_mid", "yellow"), curses.COLOR_YELLOW)
+        bar_high = cmap.get(colors.get("bar_high", "red"), curses.COLOR_RED)
+
+        curses.init_pair(config.COLOR_HEADER, curses.COLOR_BLACK, header_bg)
+        curses.init_pair(config.COLOR_SELECTED, curses.COLOR_BLACK, sel_bg)
+        curses.init_pair(config.COLOR_PLAYING, play_fg, -1)
+        curses.init_pair(config.COLOR_PROGRESS, play_fg, -1)
+        curses.init_pair(config.COLOR_EQ_ACTIVE, curses.COLOR_BLACK, play_fg)
+        curses.init_pair(config.COLOR_BAR_LOW, bar_low, -1)
+        curses.init_pair(config.COLOR_BAR_MID, bar_mid, -1)
+        curses.init_pair(config.COLOR_BAR_HIGH, bar_high, -1)
+
+    def _apply_mood(self, mood_dict: dict):
+        self.mood_manager.set_mood(mood_dict)
+        self._apply_palette(mood_dict.get("colors", {}))
+        self.spec_style = mood_dict.get("spec_style", 0)
+        save_ui_state(self.spec_style)
+        eq_name = mood_dict.get("eq")
+        if eq_name and eq_name in config.EQ_PRESETS:
+            self.player.apply_preset(config.EQ_PRESETS[eq_name])
+        self._update_lib_items()
+        self.status_msg = f"🌌 Mood activo: {mood_dict.get('name')} | EQ: {eq_name} [S para AI Stream]"
+
+    def _select_mood(self):
+        presets = list_mood_presets()
+        opts = " ".join(f"[{i+1}]{p['name'].split(' ', 1)[-1]}" for i, p in enumerate(presets))
+        val = self._prompt(f"Elegí Mood: {opts} o escribí tu vibra")
+        if not val or not val.strip():
+            return
+        clean = val.strip()
+        if clean.isdigit() and 1 <= int(clean) <= len(presets):
+            m = presets[int(clean) - 1]
+        else:
+            m = resolve_mood(clean)
+        self._apply_mood(m)
+
+    def _toggle_ai_stream(self):
+        if not self.mood_manager.active_mood:
+            self._apply_mood(resolve_mood("cyberpunk"))
+        active = self.mood_manager.toggle_stream()
+        state = "ACTIVADO (Generando en segundo plano)" if active else "PAUSADO"
+        self._update_lib_items()
+        self.status_msg = f"📻 AI Stream Continuo: {state}"
+
+    def _check_ai_stream(self):
+        if self.mood_manager.should_queue_stream_track(
+            len(self.player.playlist),
+            self.player.index,
+            self.generator.is_running()
+        ):
+            prompt = self.mood_manager.get_next_stream_prompt()
+            backend = available_backend()
+            model = config.MUSIC_MODELS[self.music_model_index] if backend == "cloud" else None
+            if self.generator.start(prompt, model=model):
+                self.status_msg = f"📻 AI Stream: encolando '{prompt[:32]}...' en segundo plano"
+
     def _configure_api_key(self):
         cur = api_key()
         hint = f" (actual: {cur[:8]}...)" if cur else ""
@@ -212,13 +287,19 @@ class BassUI:
         state, payload = self.generator.poll()
         if state == "done" and payload:
             self._add_path(payload)
-            if self.player.playlist:
-                new_idx = len(self.player.playlist) - 1
-                self.player.play_index(new_idx)
-                self.player.repeat_mode = self.player.REPEAT_ONE
-                self.cursor = new_idx
-                self.focus = "playlist"
-            self.status_msg = f"♪ Tema generado (loop ON): {os.path.basename(payload)}"
+            if self.mood_manager.stream_active:
+                self.player.repeat_mode = self.player.REPEAT_OFF
+                if self.player.index == -1:
+                    self.player.play_index(0)
+                self.status_msg = f"📻 AI Stream: nuevo bloque en cola: {os.path.basename(payload)}"
+            else:
+                if self.player.playlist:
+                    new_idx = len(self.player.playlist) - 1
+                    self.player.play_index(new_idx)
+                    self.player.repeat_mode = self.player.REPEAT_ONE
+                    self.cursor = new_idx
+                    self.focus = "playlist"
+                self.status_msg = f"♪ Tema generado (loop ON): {os.path.basename(payload)}"
         elif state == "error" and payload:
             self.status_msg = f"Error generando: {payload}"
 
@@ -229,6 +310,7 @@ class BassUI:
         while True:
             self.player.drain_pending()
             self._drain_generation()
+            self._check_ai_stream()
             self._draw()
             ch = self.scr.getch()
             if ch == -1:
@@ -268,6 +350,10 @@ class BassUI:
             self.status_msg = f"Modelo música: {config.MUSIC_MODELS[self.music_model_index]}"
         elif ch in K.get("api_key", []):
             self._configure_api_key()
+        elif ch in K.get("mood", []):
+            self._select_mood()
+        elif ch in K.get("stream_toggle", []):
+            self._toggle_ai_stream()
         elif ch == ord('v'):
             self.spec_style = (getattr(self, 'spec_style', 0) + 1) % 4
             self.status_msg = f"Visualizer: Style {self.spec_style + 1}"
@@ -328,7 +414,11 @@ class BassUI:
         elif ch in (10, 13, curses.KEY_ENTER):
             if self.lib_items and self.lib_cursor < len(self.lib_items):
                 item = self.lib_items[self.lib_cursor]
-                if item["type"] == "generate":
+                if item["type"] == "mood":
+                    self._select_mood()
+                elif item["type"] == "stream_toggle":
+                    self._toggle_ai_stream()
+                elif item["type"] == "generate":
                     self._start_generation()
                 elif item["type"] == "api_key":
                     self._configure_api_key()
@@ -489,10 +579,14 @@ class BassUI:
         music_dir.mkdir(parents=True, exist_ok=True)
         has_key = bool(api_key())
         key_name = "API Key: Configurada ✓" if has_key else "API Key: Pegar clave..."
+        stream_name = f"AI Mood Stream: {'[ACTIVO]' if self.mood_manager.stream_active else '[APAGADO]'}"
+        mood_name = f"Mood: {self.mood_manager.active_mood['name']}" if self.mood_manager.active_mood else "Elegir Mood (Ambiente/EQ)"
         self.lib_items = [
-            {"type": "generate", "name": "Generar música (AI)"},
+            {"type": "mood", "name": mood_name},
+            {"type": "stream_toggle", "name": stream_name},
+            {"type": "generate", "name": "Generar música (AI manual)"},
             {"type": "api_key", "name": key_name},
-            {"type": "header", "name": "🎹 MusicAI"},
+            {"type": "header", "name": "🎹 MusicAI & Stream"},
             {"type": "dir", "name": "🎼 Mis temas generados", "path": str(music_dir)},
             {"type": "header", "name": "📻 Online Radio"},
             {"name": "💻 Lofi Girl (YouTube Live)", "url": "https://www.youtube.com/watch?v=jfKfPfyJRdk", "type": "radio"},
@@ -574,7 +668,11 @@ class BassUI:
         self.scr.refresh()
 
     def _draw_header(self, w):
-        title = " BASS -- terminal music player "
+        mood_tag = self.mood_manager.get_status_tag()
+        if mood_tag:
+            title = f" BASS -- {mood_tag} "
+        else:
+            title = " BASS -- terminal music player "
         self.scr.attron(curses.color_pair(config.COLOR_HEADER))
         try:
             self.scr.addstr(0, 0, title.ljust(w)[:w])
@@ -621,6 +719,8 @@ class BassUI:
                 elif item["type"] == "file": prefix = "🎵 "
                 elif item["type"] == "generate": prefix = "✨ "
                 elif item["type"] == "api_key": prefix = "🔑 "
+                elif item["type"] == "mood": prefix = "🌌 "
+                elif item["type"] == "stream_toggle": prefix = "📻 "
                 
                 line = f"{prefix}{item['name']}"
                 line = line[:lib_w - 1].ljust(lib_w - 1)
@@ -809,6 +909,7 @@ class BassUI:
             "s        Shuffle            r        Repetir (off/una/todas)",
             "a        Agregar archivo    u        Agregar URL / stream",
             "g        Generar música     G        Ciclar modelo (clip/pro)",
+            "M        Elegir Mood        S        Toggle AI Stream continuo",
             "K        Configurar API Key (o click en el menú izquierdo)",
             "API: guardada en ~/.config/bass/openrouter_key o env var",
             "d        Agregar carpeta    x        Quitar de playlist",

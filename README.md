@@ -87,15 +87,31 @@ bass ~/Music/MyAlbum
 | `↑` `↓` | Navigate List or Adjust EQ Band |
 | `←` `→` | Change EQ Band (when EQ is focused) |
 | `1`-`6` | Apply EQ Preset (Flat, Bass, Rock, Pop, Vocal, Electro) |
-| `g` | Generate Music (AI) |
+| `M` | Mood Engine (Cyberpunk, Lo-Fi, Zen, Rock, Synthwave, Trap) |
+| `S` | Toggle AI Mood Stream (Continuous background music) |
+| `K` | Configure OpenRouter API Key directly |
+| `g` | Generate Music (AI single track) |
 | `G` | Cycle Generation Model |
 | `?` | Show Help Overlay |
 | `q` | Quit Application |
 
 **Mouse Controls:**
-- **Left Click** on a track to play it.
+- **Left Click** on a track or folder to play/open it.
 - **Left Click** on the progress bar to seek.
-- **Scroll Wheel** to navigate the playlist or library.
+- **Scroll Wheel** automatically scrolls whichever panel your cursor is hovering over.
+
+---
+
+## 🌌 Reactive Mood Engine & AI Stream Continuo (Release v1.2.0)
+
+Inspirado en la orquestación generativa de `gentle-stream`, Bass incluye un **Reactive Mood Engine** que transforma la atmósfera de tu terminal y genera música infinita para streams:
+
+- **Atajo `M` o click en `🌌 Mood`:** Seleccioná entre presets calibrados (*Cyberpunk Night*, *Lo-Fi Café*, *Zen Chill*, *Rock Energy*, *Synthwave 80s*, *Dark Trap*) o escribí tu propio estado de ánimo en texto libre.
+- **Transformación reactiva en vivo:**
+  - 🎨 **Paleta de colores:** Cambia los contrastes y acentos visuales de curses según la atmósfera.
+  - 🎚️ **10-Band EQ:** Aplica al instante la curva de ecualización ideal para ese género.
+  - 📊 **Spectrum Analyzer:** Cambia el estilo de renderizado de barras del analizador FFT en tiempo real.
+- **Atajo `S` o click en `📻 AI Mood Stream`:** Activa el modo de transmisión continua. Bass va generando y encolando nuevos bloques musicales coherentes en segundo plano antes de que termine el tema actual, logrando un stream ininterrumpido sin silencios.
 
 ---
 

@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bass Music — Feature Release RFC: Mood & Generative Audio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090a0f;
+      --card-bg: rgba(18, 20, 29, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent-cyan: #00f0ff;
+      --accent-magenta: #ff007f;
+      --accent-purple: #8b5cf6;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --font-mono: 'Fira Code', monospace;
+      --font-sans: 'Inter', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      background: radial-gradient(circle at 50% 0%, #17112c 0%, var(--bg) 60%);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      line-height: 1.6;
+      padding: 2rem 1.5rem 5rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3.5rem;
+      position: relative;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.35);
+      color: #c4b5fd;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #ffffff 30%, #a78bfa 70%, var(--accent-cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.85rem;
+    }
+
+    .subtitle {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    /* Reference Card */
+    .bench-card {
+      background: rgba(26, 18, 38, 0.6);
+      border: 1px solid rgba(240, 149, 200, 0.25);
+      border-radius: 14px;
+      padding: 1.5rem 2rem;
+      margin-bottom: 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      backdrop-filter: blur(12px);
+    }
+    .bench-card h3 {
+      font-size: 1.05rem;
+      color: #f095c8;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .bench-card p {
+      font-size: 0.92rem;
+      color: #d1d5db;
+    }
+    .bench-link {
+      color: var(--accent-cyan);
+      text-decoration: none;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .bench-link:hover {
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--accent-cyan);
+    }
+
+    /* Comparison Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 1.75rem;
+      margin-bottom: 4rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(139, 92, 246, 0.4);
+      box-shadow: 0 12px 30px -10px rgba(139, 92, 246, 0.2);
+    }
+
+    .card.featured {
+      border-color: rgba(0, 240, 255, 0.4);
+      background: linear-gradient(180deg, rgba(14, 30, 48, 0.8) 0%, rgba(18, 20, 29, 0.8) 100%);
+      box-shadow: 0 8px 32px -8px rgba(0, 240, 255, 0.18);
+    }
+
+    .featured-tag {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      color: #000;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .card-header {
+      margin-bottom: 1.25rem;
+    }
+
+    .card-icon {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+      display: inline-block;
+    }
+
+    .card-title {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+
+    .card-desc {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .card-body {
+      flex: 1;
+      margin: 1.5rem 0;
+    }
+
+    .section-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--accent-purple);
+      margin-bottom: 0.75rem;
+    }
+
+    .feature-list {
+      list-style: none;
+      margin-bottom: 1.5rem;
+    }
+
+    .feature-list li {
+      font-size: 0.9rem;
+      color: #e5e7eb;
+      margin-bottom: 0.6rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .feature-list li::before {
+      content: "▹";
+      color: var(--accent-cyan);
+      font-weight: bold;
+    }
+
+    /* Terminal Preview */
+    .terminal-box {
+      background: #050608;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: #a7f3d0;
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+      line-height: 1.4;
+    }
+
+    .terminal-box .dim { color: #6b7280; }
+    .terminal-box .accent { color: var(--accent-cyan); }
+    .terminal-box .pink { color: var(--accent-magenta); }
+
+    /* Tradeoffs */
+    .tradeoffs {
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 10px;
+      padding: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .pro-con {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.4rem;
+    }
+    .pro-con:last-child { margin-bottom: 0; }
+    .pro-con .tag {
+      font-weight: 700;
+      font-size: 0.72rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      min-width: 48px;
+      text-align: center;
+    }
+    .tag.pro { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .tag.con { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+
+    /* Matrix Table */
+    .matrix-section {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 2.5rem;
+      margin-bottom: 4rem;
+      backdrop-filter: blur(16px);
+    }
+
+    .matrix-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      text-align: left;
+    }
+
+    th {
+      font-weight: 600;
+      color: var(--accent-purple);
+      padding: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: #d1d5db;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    .check { color: #34d399; font-weight: bold; }
+    .cross { color: #f87171; font-weight: bold; }
+    .mid { color: #fbbf24; }
+
+    /* Action bar */
+    .approval-banner {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(0, 240, 255, 0.15));
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      border-radius: 16px;
+      padding: 2.5rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .approval-banner h2 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 0.75rem;
+    }
+
+    .approval-banner p {
+      color: var(--text-muted);
+      max-width: 650px;
+      margin: 0 auto 2rem;
+      font-size: 1rem;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 0.85rem 1.75rem;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      color: #050608;
+      box-shadow: 0 4px 15px rgba(0, 240, 255, 0.35);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 20px rgba(0, 240, 255, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: #c4b5fd;
+      border: 1px solid rgba(139, 92, 246, 0.35);
+    }
+    .btn-outline:hover {
+      background: rgba(139, 92, 246, 0.15);
+      border-color: var(--accent-purple);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Header -->
+    <header>
+      <div class="badge">RFC / Arquitectura & Diseño v1.2</div>
+      <h1>Bass Music — Mood & Stream Release</h1>
+      <p class="subtitle">Propuestas de ingeniería para integrar generación de atmósfera continua inspirada en <code>gentle-stream</code>, conservando la identidad técnica y visual de Bass.</p>
+    </header>
+
+    <!-- Reference Box -->
+    <div class="bench-card">
+      <div>
+        <h3>🎧 Análisis del referente: gentle-stream</h3>
+        <p>Motor de síntesis procedural en tiempo real. Un LLM convierte el prompt en parámetros armónicos (JSON) y un sintetizador por software (DSP/SoundFonts) genera compás a compás sin parar.</p>
+      </div>
+      <a href="https://github.com/nbmsystemas/gentle-stream" target="_blank" class="bench-link">Ver repositorio ↗</a>
+    </div>
+
+    <!-- 3 Proposals Grid -->
+    <div class="grid">
+
+      <!-- Option 1 -->
+      <div class="card featured">
+        <span class="featured-tag">Recomendada</span>
+        <div class="card-header">
+          <div class="card-icon">⚡</div>
+          <h2 class="card-title">Opción A: AI Mood Radio</h2>
+          <p class="card-desc">Radio infinita generativa en segundo plano. Calidad de estudio de Google Lyria encadenada sin silencios para fondos de streaming.</p>
+        </div>
+
+        <div class="terminal-box">
+<span class="dim">── [📻 AI Mood Radio: "lofi café lluvia"] ──</span>
+<span class="accent">▶ 001. Café Rain Part I</span>      <span class="pink">[0:28/0:30]</span>
+  002. Café Rain Part II     <span class="dim">[Generado ⏳]</span>
+  003. Café Rain Part III    <span class="dim">[Encolando...]</span>
+<span class="dim">Status: Buffering next bar seamless · Loop OFF</span>
+        </div>
+
+        <div class="card-body">
+          <div class="section-title">Qué aporta a Bass</div>
+          <ul class="feature-list">
+            <li><strong>Auto-encadenamiento:</strong> Genera el siguiente clip 15s antes de que termine el actual, haciendo crossfade en mpv.</li>
+            <li><strong>Calidad de estudio:</strong> Mantiene los instrumentos y mastering neuronal de Lyria 3 (sin sonido robótico MIDI).</li>
+            <li><strong>Modo Streamer:</strong> Diseñado específicamente para que pongas un mood y te olvides durante todo el vivo.</li>
+          </ul>
+
+          <div class="tradeoffs">
+            <div class="pro-con">
+              <span class="tag pro">Pro</span>
+              <span>Audio profesional, cero latencia entre temas, stream continuo real.</span>
+            </div>
+            <div class="pro-con">
+              <span class="tag con">Contra</span>
+              <span>Consume créditos de OpenRouter por cada bloque generado (~$0.04/bloque).</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Option 2 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">🎹</div>
+          <h2 class="card-title">Opción B: Procedural Synth</h2>
+          <p class="card-desc">Motor de síntesis DSP offline dentro de Bass. Generación matemática compás a compás con cero consumo de APIs.</p>
+        </div>
+
+        <div class="terminal-box">
+<span class="dim">── [🎹 Procedural Synth Engine: Lo-Fi] ──</span>
+<span class="accent">BPM: 78 · Key: Dm · Bars: 142 (Loop Infinito)</span>
+Oscillators: Saw/Sine Sub · Vinyl Wow: 0.4
+<span class="pink">Master: LowPass 4.2kHz · Saturation ON</span>
+<span class="dim">Audio: sounddevice callback · CPU: 2.1% · Cost: $0</span>
+        </div>
+
+        <div class="card-body">
+          <div class="section-title">Qué aporta a Bass</div>
+          <ul class="feature-list">
+            <li><strong>100% Offline & Gratis:</strong> No requiere internet, API keys ni modelos cloud. Cero costo de tokens.</li>
+            <li><strong>Infinito real:</strong> Algoritmo de composición armónica que va variando notas y acordes en vivo.</li>
+            <li><strong>Instantáneo:</strong> Apretás una tecla y suena en 50 milisegundos sin esperar requests HTTP.</li>
+          </ul>
+
+          <div class="tradeoffs">
+            <div class="pro-con">
+              <span class="tag pro">Pro</span>
+              <span>Cero consumo de tokens, offline, instantáneo y sin depender de terceros.</span>
+            </div>
+            <div class="pro-con">
+              <span class="tag con">Contra</span>
+              <span>Sonido sintetizado retro/chiptune, no tiene la riqueza acústica de Lyria.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Option 3 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">🌌</div>
+          <h2 class="card-title">Opción C: Reactive Mood Engine</h2>
+          <p class="card-desc">Transformación audiovisual integral de Bass. El mood altera ecualizador, colores, visualizador FFT y curaduría de música.</p>
+        </div>
+
+        <div class="terminal-box">
+<span class="dim">── [🌌 Mood Activated: "Cyberpunk 2077 Focus"] ──</span>
+<span class="accent">EQ Preset: Bass Boost (+6dB low, -2dB mid)</span>
+Visualizer: Neon Glitch FFT · Colors: Magenta/Cyan
+<span class="pink">Now Playing: Nightride FM + AI Cyber Filler</span>
+<span class="dim">Playlist auto-curada con 8 temas coincidentes</span>
+        </div>
+
+        <div class="card-body">
+          <div class="section-title">Qué aporta a Bass</div>
+          <ul class="feature-list">
+            <li><strong>Atmósfera TUI Completa:</strong> El reproductor muta de estética en vivo según el mood del stream.</li>
+            <li><strong>Híbrido Inteligente:</strong> Combina las radios temáticas existentes + tu música local + temas de IA.</li>
+            <li><strong>EQ Dinámico:</strong> Ajusta las 10 bandas del ecualizador automáticamente para el estilo elegido.</li>
+          </ul>
+
+          <div class="tradeoffs">
+            <div class="pro-con">
+              <span class="tag pro">Pro</span>
+              <span>Impacto visual tremendo en pantalla, aprovecha todo lo que Bass ya tiene.</span>
+            </div>
+            <div class="pro-con">
+              <span class="tag con">Contra</span>
+              <span>Requiere coordinar más partes de UI/color y presets en el estado.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Technical Comparison Matrix -->
+    <div class="matrix-section">
+      <h2 class="matrix-title">📊 Matriz Comparativa Técnica</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Criterio</th>
+            <th>Opción A (AI Stream)</th>
+            <th>Opción B (Procedural Synth)</th>
+            <th>Opción C (Reactive Engine)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Calidad de Audio</strong></td>
+            <td><span class="check">★★★★★ (Estudio real)</span></td>
+            <td><span class="mid">★★★☆☆ (Retro / Synth)</span></td>
+            <td><span class="check">★★★★★ (Híbrida alta)</span></td>
+          </tr>
+          <tr>
+            <td><strong>Latencia de Arranque</strong></td>
+            <td><span class="mid">~6 a 10s (primer buffer)</span></td>
+            <td><span class="check">&lt; 100ms (instantáneo)</span></td>
+            <td><span class="check">Instantáneo (usa radio/local)</span></td>
+          </tr>
+          <tr>
+            <td><strong>Costo Operativo</strong></td>
+            <td><span class="mid">Créditos OpenRouter</span></td>
+            <td><span class="check">100% Gratis ($0)</span></td>
+            <td><span class="check">Cero o mínimo según uso</span></td>
+          </tr>
+          <tr>
+            <td><strong>Continuidad en Stream</strong></td>
+            <td><span class="check">Infinita con crossfade</span></td>
+            <td><span class="check">Infinita sin cortes</span></td>
+            <td><span class="check">Infinita (radio + IA)</span></td>
+          </tr>
+          <tr>
+            <td><strong>Impacto Visual en TUI</strong></td>
+            <td><span class="mid">Panel de streaming</span></td>
+            <td><span class="mid">Telemetría de compases</span></td>
+            <td><span class="check">★★★★★ (Mutación total)</span></td>
+          </tr>
+          <tr>
+            <td><strong>Complejidad de Código</strong></td>
+            <td>Baja (extiende player + buffer)</td>
+            <td>Alta (DSP + osciladores)</td>
+            <td>Media (UI state + presets)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Decision Callout -->
+    <div class="approval-banner">
+      <h2>¿Cuál es el veredicto del Arquitecto?</h2>
+      <p>
+        La <strong>Opción A (AI Mood Radio)</strong> combinada con toques visuales de la <strong>Opción C</strong> es el punto dulce: 
+        te da la música infinita para streams sin perder la calidad de estudio de Bass, agregando crossfade en mpv y auto-generación de bloques.
+      </p>
+      <div class="btn-group">
+        <a href="#option-a" class="btn btn-primary">Aprobar Opción A (AI Stream)</a>
+        <a href="#option-b" class="btn btn-secondary">Aprobar Opción B (Procedural)</a>
+        <a href="#option-c" class="btn btn-outline">Aprobar Opción C (Reactive)</a>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

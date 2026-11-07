@@ -1,4 +1,4 @@
-VERSION = "v1.1.0"
+VERSION = "v1.2.0"
 
 """
 config.py
@@ -37,6 +37,8 @@ KEYS = {
     "generate": [ord("g")],
     "cycle_model": [ord("G")],
     "api_key": [ord("K")],
+    "mood": [ord("M")],
+    "stream_toggle": [ord("S")],
     "quit": [ord("q")],
     "help": [ord("?")],
 }
@@ -98,3 +100,105 @@ MUSIC_DEFAULT_MODEL_INDEX = 0
 # se guardan los temas generados. Si no hay carpeta de música, se usa
 # ~/.config/bass/generated.
 MUSIC_OUTPUT_DIRNAME = "MusicAI"
+
+# ---------------------------------------------------------------------------
+# Reactive Mood Engine — Presets de atmósfera (Opción C + A)
+# ---------------------------------------------------------------------------
+MOOD_PRESETS = {
+    "cyberpunk": {
+        "name": "🌌 Cyberpunk Night",
+        "tag": "cyberpunk",
+        "prompt": "dark synthwave cyberpunk bass electronic night arpeggios 80s",
+        "eq": "Bass",
+        "spec_style": 1,  # Digital Shadow
+        "radio": "Nightride FM (Synthwave)",
+        "colors": {
+            "header": "cyan",
+            "selected": "magenta",
+            "playing": "cyan",
+            "bar_low": "blue",
+            "bar_mid": "magenta",
+            "bar_high": "cyan",
+        },
+    },
+    "lofi": {
+        "name": "☕ Lo-Fi Café",
+        "tag": "lofi",
+        "prompt": "lofi hip hop chill beats cozy rain café vinyl mellow keys",
+        "eq": "Vocal",
+        "spec_style": 0,  # Classic Blocks
+        "radio": "Lofi Girl (YouTube Live)",
+        "colors": {
+            "header": "yellow",
+            "selected": "magenta",
+            "playing": "green",
+            "bar_low": "green",
+            "bar_mid": "yellow",
+            "bar_high": "magenta",
+        },
+    },
+    "zen": {
+        "name": "🧘 Zen Chill",
+        "tag": "zen",
+        "prompt": "ambient meditation zen deep atmospheric drone calm healing peaceful",
+        "eq": "Flat",
+        "spec_style": 0,  # Classic Blocks
+        "radio": "Drone Zone (SomaFM)",
+        "colors": {
+            "header": "green",
+            "selected": "cyan",
+            "playing": "green",
+            "bar_low": "blue",
+            "bar_mid": "cyan",
+            "bar_high": "green",
+        },
+    },
+    "rock": {
+        "name": "⚡ Rock Energy",
+        "tag": "rock",
+        "prompt": "energetic rock heavy riffs punchy drums overdrive guitar rhythm drive",
+        "eq": "Rock",
+        "spec_style": 2,  # Pure ASCII
+        "radio": "Radio Paradise (Rock)",
+        "colors": {
+            "header": "red",
+            "selected": "yellow",
+            "playing": "red",
+            "bar_low": "red",
+            "bar_mid": "yellow",
+            "bar_high": "white",
+        },
+    },
+    "synthwave": {
+        "name": "🕶️ Synthwave 80s",
+        "tag": "synthwave",
+        "prompt": "outrun 1984 retro electro synthwave analog drums neon drive",
+        "eq": "Electro",
+        "spec_style": 1,  # Digital Shadow
+        "radio": "Nightride FM (Synthwave)",
+        "colors": {
+            "header": "magenta",
+            "selected": "cyan",
+            "playing": "magenta",
+            "bar_low": "magenta",
+            "bar_mid": "cyan",
+            "bar_high": "yellow",
+        },
+    },
+    "trap": {
+        "name": "🏙️ Dark Trap & Drill",
+        "tag": "trap",
+        "prompt": "dark trap sub bass 808 hard hitting hi hats drill sliding bass",
+        "eq": "Bass",
+        "spec_style": 1,  # Digital Shadow
+        "radio": "Groove Salad (SomaFM)",
+        "colors": {
+            "header": "red",
+            "selected": "magenta",
+            "playing": "red",
+            "bar_low": "red",
+            "bar_mid": "magenta",
+            "bar_high": "cyan",
+        },
+    },
+}

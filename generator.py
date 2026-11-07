@@ -154,16 +154,23 @@ class OpenRouterGenerator:
     def generate(self, prompt: str, dest_stem: pathlib.Path) -> pathlib.Path:
         audio_bytes, fmt = self._request(prompt)
         if not audio_bytes:
-            raise MusicGenerationError("No se recibió audio del modelo.")
+            raise MusicGenerationError(
+                "No se recibió audio del modelo (Google Lyria bloquea nombres de artistas con copyright. Usá géneros/moods como: jazz, lo-fi, trap, rock, synthwave)"
+            )
         ext = _sniff_ext(audio_bytes, fmt)
         path = pathlib.Path(f"{dest_stem}.{ext}")
         path.write_bytes(audio_bytes)
         return path
 
     def _request(self, prompt: str) -> tuple[bytes, str | None]:
+        formatted_prompt = prompt
+        p_lower = prompt.lower()
+        if "instrumental" not in p_lower and "music" not in p_lower:
+            formatted_prompt = f"original instrumental music track, genre and mood: {prompt}"
+
         payload = json.dumps({
             "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": [{"role": "user", "content": formatted_prompt}],
             "modalities": ["audio"],
             "stream": True,
         }).encode("utf-8")
