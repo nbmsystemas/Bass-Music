@@ -39,7 +39,7 @@ import os
 import config
 from player import Player, load_playlist, save_playlist
 from spectrum import SpectrumAnalyzer
-from generator import GenerationService, available_backend, output_dir, local_backend_available
+from generator import GenerationService, available_backend, output_dir, local_backend_available, api_key
 
 
 
