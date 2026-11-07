@@ -56,6 +56,13 @@ def main():
     except Exception as e:
         print(f"Bass se cerró por un error: {e}", file=sys.stderr)
         sys.exit(1)
+    finally:
+        try:
+            curses.endwin()
+        except Exception:
+            pass
+        sys.stdout.write("\033[?1049l\033[?25h\033[0m")
+        sys.stdout.flush()
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ import pathlib
 import queue
 import random
 import threading
+import time
 import mpv
 
 from config import EQ_BANDS_HZ, EQ_MIN_GAIN, EQ_MAX_GAIN
@@ -321,6 +322,12 @@ class Player:
         self.repeat_mode = (self.repeat_mode + 1) % 3
 
     def shutdown(self):
+        try:
+            self._started = False
+            self.mpv.command("stop")
+        except Exception:
+            pass
+        time.sleep(0.08)
         try:
             self.mpv.terminate()
         except Exception:

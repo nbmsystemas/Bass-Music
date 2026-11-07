@@ -199,3 +199,4 @@ class SpectrumAnalyzer:
                 self._stream.close()
             except Exception:
                 pass
+            self._stream = None

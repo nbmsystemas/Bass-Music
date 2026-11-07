@@ -1074,6 +1074,15 @@ class BassUI:
                 pass
 
     def shutdown(self):
-        save_playlist(self.player.playlist)
-        self.spectrum.close()
-        self.player.shutdown()
+        try:
+            save_playlist(self.player.playlist)
+        except Exception:
+            pass
+        try:
+            self.spectrum.close()
+        except Exception:
+            pass
+        try:
+            self.player.shutdown()
+        except Exception:
+            pass
