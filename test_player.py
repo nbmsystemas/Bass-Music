@@ -84,6 +84,18 @@ class TestPlayerAdvance(unittest.TestCase):
         p.drain_pending()
         self.assertEqual(p.index, 1)  # no avanza más allá del final
 
+    def test_pause_ignores_idle_and_does_not_advance(self):
+        p = make_player()
+        for t in ("a.mp3", "b.mp3"):
+            p.add(t)
+        p.play_index(0)
+        p.toggle_pause()  # user pressed Space to pause
+        self.assertTrue(p.is_paused)
+        p._on_idle("core-idle", True)  # mpv emits core-idle when paused
+        self.assertFalse(p._pending_eof)
+        p.drain_pending()
+        self.assertEqual(p.index, 0)  # must stay on track 0!
+
     def test_shuffle_next_picks_other_index(self):
         p = make_player()
         for t in ("a.mp3", "b.mp3", "c.mp3"):

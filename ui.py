@@ -291,7 +291,7 @@ class BassUI:
 
     def _handle_key_library(self, ch):
         h, w = self.scr.getmaxyx()
-        visible_h = max(1, h - 9)
+        visible_h = max(1, h - 11)
         if ch in (curses.KEY_UP,):
             self.lib_cursor = max(0, self.lib_cursor - 1)
             if self.lib_cursor < self.lib_scroll:
@@ -327,7 +327,7 @@ class BassUI:
     def _handle_key_playlist(self, ch):
         rows = self._visible_rows()
         h, w = self.scr.getmaxyx()
-        visible_h = max(1, h - 8 - 2)  # matches playlist top/bottom
+        visible_h = max(1, h - 11)  # matches playlist top/bottom (top=2, bottom=h-9)
         if ch in (curses.KEY_UP,):
             self.cursor = max(0, self.cursor - 1)
             if self.cursor < self._scroll:
@@ -390,18 +390,18 @@ class BassUI:
             
         if bstate & getattr(curses, "BUTTON5_PRESSED", 0):
             if mx < lib_w and self.focus == "library":
-                visible_h = max(1, h - 9)
+                visible_h = max(1, h - 11)
                 self.lib_cursor = min(max(0, len(self.lib_items) - 1), self.lib_cursor + 1)
                 if self.lib_cursor >= self.lib_scroll + visible_h: self.lib_scroll = self.lib_cursor - visible_h + 1
             else:
                 rows = self._visible_rows()
-                visible_h = max(1, h - 9)
+                visible_h = max(1, h - 11)
                 self.cursor = min(max(0, len(rows) - 1), self.cursor + 1)
                 if self.cursor >= self._scroll + visible_h: self._scroll = self.cursor - visible_h + 1
             return False
 
         if bstate & (curses.BUTTON1_CLICKED | curses.BUTTON1_PRESSED) or bstate & curses.BUTTON1_DOUBLE_CLICKED:
-            playlist_top, playlist_bottom = 1, h - 9
+            playlist_top, playlist_bottom = 2, h - 9
             progress_row = h - 3
 
             if my == progress_row:
@@ -528,12 +528,12 @@ class BassUI:
         if self.filter_text:
             status = f"[Filter: '{self.filter_text}'] {status}"
         try:
-            self.scr.addstr(1, 0, status[: w - 1], curses.color_pair(config.COLOR_DIM))
+            self.scr.addstr(1, 0, status[: w - 1].ljust(w - 1), curses.color_pair(config.COLOR_DIM))
         except curses.error:
             pass
 
     def _draw_library(self, h, w, lib_w):
-        top, bottom = 1, h - 9
+        top, bottom = 2, h - 9
         visible_h = max(1, bottom - top)
         
         # separator
@@ -577,7 +577,7 @@ class BassUI:
                 pass
 
     def _draw_playlist(self, h, w, lib_w):
-        top, bottom = 1, h - 9  # fixed: was h-8, now h-9 to avoid spectrum label collision (M-5)
+        top, bottom = 2, h - 9  # row 1 is reserved for status_msg in _draw_header
         eq_width = 34 if self.show_eq else 0
         list_w = max(10, w - lib_w - eq_width - 2)
         visible_h = max(1, bottom - top)

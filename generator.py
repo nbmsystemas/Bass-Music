@@ -49,8 +49,35 @@ def output_dir() -> pathlib.Path:
 
 
 def api_key() -> str | None:
-    """API key de OpenRouter, tomada únicamente del entorno (nunca del código)."""
-    return os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENROUTER_KEY")
+    """API key de OpenRouter, tomada del entorno o archivo de configuración."""
+    k = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENROUTER_KEY")
+    if k and k.strip():
+        return k.strip()
+    candidates = [
+        pathlib.Path(".env"),
+        pathlib.Path.home() / ".config" / "bass" / "openrouter_key",
+        pathlib.Path.home() / ".config" / "bass" / ".env",
+    ]
+    for p in candidates:
+        try:
+            if p.is_file():
+                for line in p.read_text().splitlines():
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if line.startswith("OPENROUTER_API_KEY="):
+                        val = line.split("=", 1)[1].strip().strip('"').strip("'")
+                        if val:
+                            return val
+                    if line.startswith("OPENROUTER_KEY="):
+                        val = line.split("=", 1)[1].strip().strip('"').strip("'")
+                        if val:
+                            return val
+                    if p.name == "openrouter_key" and "=" not in line:
+                        return line
+        except Exception:
+            pass
+    return None
 
 
 def available_backend() -> str:

@@ -58,6 +58,21 @@ class TestBackendSelection(unittest.TestCase):
         with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-test"}):
             self.assertEqual(generator.available_backend(), "cloud")
 
+    def test_api_key_reads_from_config_file_when_env_missing(self):
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("OPENROUTER_API_KEY", None)
+            os.environ.pop("OPENROUTER_KEY", None)
+
+            def fake_is_file(p):
+                return p.name == "openrouter_key"
+
+            def fake_read_text(p):
+                return "sk-or-from-file\n"
+
+            with mock.patch.object(pathlib.Path, "is_file", fake_is_file):
+                with mock.patch.object(pathlib.Path, "read_text", fake_read_text):
+                    self.assertEqual(generator.api_key(), "sk-or-from-file")
+
 
 class TestHelpers(unittest.TestCase):
     def test_slugify(self):

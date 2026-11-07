@@ -173,6 +173,8 @@ class Player:
                 self._play_index_locked(0)
                 return
         self.mpv.pause = not self.mpv.pause
+        if self.is_paused:
+            self._pending_eof = False
 
     @property
     def is_paused(self) -> bool:
@@ -207,7 +209,9 @@ class Player:
         # Just set a flag; the main UI loop drains it via drain_pending().
         # "value" es True cuando mpv queda idle (terminó la pista). Ignoramos el
         # idle inicial: solo cuenta si ya arrancamos a reproducir (_started).
-        if value and self._started:
+        # mpv también entra en core-idle cuando está en pausa, por lo que si
+        # is_paused es True, NO es fin de pista (EOF).
+        if value and self._started and not self.is_paused:
             self._pending_eof = True
 
     def drain_pending(self):
@@ -215,6 +219,8 @@ class Player:
         if not self._pending_eof:
             return
         self._pending_eof = False
+        if self.is_paused:
+            return
         with self._lock:
             if self.repeat_mode == self.REPEAT_ONE:
                 self._play_index_locked(self.index)
