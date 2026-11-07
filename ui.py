@@ -836,21 +836,27 @@ class BassUI:
             self.scr.addstr(row, 0, bar, curses.color_pair(config.COLOR_PROGRESS))
         except curses.error:
             pass
-        info = f"{_fmt_time(pos)} / {_fmt_time(dur)}"
-        try:
-            self.scr.addstr(row + 1, 0, info[: bar_w], curses.color_pair(config.COLOR_DEFAULT))
-        except curses.error:
-            pass
 
-    def _draw_footer(self, h, w):
-        state = "II Paused" if self.player.is_paused else "▶ Playing"
+        state = "⏸ Paused" if self.player.is_paused else "▶ Playing"
         vol = self.player.volume
         muted = " (mute)" if self.player.is_muted else ""
         shuf = "ON" if self.player.shuffle_on else "OFF"
         rep = ["OFF", "ONE", "ALL"][self.player.repeat_mode]
-        line = f"{state} | Vol {vol}%{muted} | Shuffle {shuf} | Repetir {rep} | g = generar | ? = ayuda"
+        info = f"{_fmt_time(pos)} / {_fmt_time(dur)}  |  {state}  |  Vol {vol}%{muted}  |  Shuffle {shuf}  |  Loop {rep}"
         try:
-            self.scr.addstr(h - 1, 0, line[: w - 1], curses.color_pair(config.COLOR_DIM))
+            self.scr.addstr(row + 1, 0, info[: bar_w].ljust(bar_w), curses.color_pair(config.COLOR_DEFAULT))
+        except curses.error:
+            pass
+
+    def _draw_footer(self, h, w):
+        shortcuts = " [Space] Pausa | [M] Mood | [S] Stream IA | [g] Generar | [K] Key | [e] EQ | [a/u] Agregar | [?] Ayuda | [q] Salir"
+        if w < 105:
+            shortcuts = " [Space] Pausa | [M] Mood | [S] Stream | [g] IA | [K] Key | [e] EQ | [?] Ayuda | [q] Salir"
+        if w < 85:
+            shortcuts = " [Space] Pausa | [M] Mood | [S] Stream | [g] IA | [?] Ayuda | [q] Salir"
+
+        try:
+            self.scr.addstr(h - 1, 0, shortcuts[: w - 1].ljust(w - 1), curses.color_pair(config.COLOR_HEADER))
         except curses.error:
             pass
 
