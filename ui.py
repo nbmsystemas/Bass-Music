@@ -17,7 +17,9 @@ from __future__ import annotations
 
 import curses
 import json
+import os
 import pathlib
+import time
 
 _UI_STATE_FILE = pathlib.Path.home() / ".config" / "bass" / "ui_state.json"
 
@@ -33,8 +35,6 @@ def load_ui_state() -> int:
         return json.loads(_UI_STATE_FILE.read_text()).get("spec_style", 0)
     except:
         return 0
-
-import os
 
 import config
 from player import Player, load_playlist, save_playlist
